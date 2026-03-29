@@ -1,36 +1,22 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# [时间胶囊/AI CopyWriter] - 上传照片，AI为你创作独特的旁白。
 
-## Getting Started
+## ✨ 核心功能
+* **AI原创旁白**: AI 根据画面意境，原创一句极简旁白；
+* **经典引文匹配**: AI 从文学、动漫、电影台词、歌词中匹配最契合的引文；
+* **精美图片导出**: 自动生成精美的配文图片并支持下载；
+* **移动端适配**: 移动端上传&保存手机照片更便捷。
 
-First, run the development server:
+## 🛠️ 技术栈
+* **框架**: Next.js (App Router)
+* **样式**: Tailwind CSS
+* **大模型API**: Gemini3 flash（快但比较贵） & Kimi K2.5（慢但省钱）
+* **部署**: Vercel
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 快速开始
+1. 克隆项目: `git clone ...`
+2. 安装依赖: `npm install`
+3. 配置环境变量: 创建 `.env.local` 并添加你的 API Key
+4. 启动项目: `npm run dev`
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+Made with ❤️ by Alex Wake
