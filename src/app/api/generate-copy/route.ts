@@ -104,14 +104,11 @@ export async function POST(req: Request) {
         const userTextPrompt = copyMode === 'ai-original' ? basePrompt + metadataHint : basePrompt;
 
         if (modelProvider === 'kimi') {
-            const kimiApiUrl = process.env.KIMI_API_URL || 'https://kimi-api-proxy-gyandprgbt.cn-shenzhen.fcapp.run';
-            const kimiProxySecret = process.env.VITE_KIMI_PROXY_SECRET || '';
-
-            const response = await fetch(kimiApiUrl, {
+            const response = await fetch(`${process.env.KIMI_PROXY_URL}/v1/chat/completions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Proxy-Key': kimiProxySecret
+                    'X-Proxy-Key': process.env.KIMI_PROXY_SECRET || ''
                 },
                 body: JSON.stringify({
                     model: 'kimi-k2.5',
