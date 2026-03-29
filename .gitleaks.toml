@@ -1,0 +1,21 @@
+# .gitleaks.toml
+# Gitleaks configuration for Visual Copywriter project.
+# Excludes build artifacts and third-party dependencies that contain demo/test API keys.
+
+title = "Visual Copywriter Gitleaks Config"
+
+[extend]
+# Extend the official default ruleset
+useDefault = true
+
+[allowlist]
+description = "Exclude build artifacts and third-party library internals"
+
+# Exclude entire directories and local secret files from scanning
+# .env* files are already protected by .gitignore — scanning them adds noise
+paths = [
+    '''.next''',
+    '''node_modules''',
+    '''\.env.*''',
+    '''\.env''',
+]

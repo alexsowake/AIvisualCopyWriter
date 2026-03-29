@@ -1,36 +1,66 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# =============================================================================
+# Visual Copywriter - .gitignore
+# Stack: Next.js 14 / TypeScript / Tailwind CSS / macOS
+# =============================================================================
 
-# dependencies
-/node_modules
-/.pnp
+# --- Dependencies ---
+node_modules/
+.pnp
 .pnp.js
 .yarn/install-state.gz
 
-# testing
-/coverage
+# --- Next.js Build Output ---
+.next/
+out/
+build/
 
-# next.js
-/.next/
-/out/
+# --- Environment Variables (SECURITY CRITICAL) ---
+# Never commit secrets. Use .env.example to document required keys.
+.env
+.env.*
+!.env.example
 
-# production
-/build
+# --- TypeScript ---
+*.tsbuildinfo
+next-env.d.ts
 
-# misc
-.DS_Store
-*.pem
+# --- Testing / Coverage ---
+coverage/
+.nyc_output/
 
-# debug
+# --- Logs ---
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+*.log
 
-# local env files
-.env*.local
+# --- macOS System Files ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
 
-# vercel
-.vercel
+# --- Editors & IDEs ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# --- Vercel / Deployment ---
+.vercel/
+
+# --- Certificates ---
+*.pem
+
+# --- Optional: if you use Docker locally ---
+# docker-compose.override.yml
+
+# --- Project-specific: AI Agent Rules (keep in repo for team context) ---
+# .agents/ is intentionally NOT ignored — it stores shared dev conventions.

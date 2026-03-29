@@ -1,0 +1,9 @@
+# .gitleaksignore
+# Suppress false positives from build artifacts and third-party dependencies.
+# These paths are already excluded from Git via .gitignore and pose no real leak risk.
+
+# Next.js build cache — webpack bundles third-party lib demo/test API keys into here
+.next/
+
+# Node modules — third-party packages may contain hardcoded demo keys in tests
+node_modules/
