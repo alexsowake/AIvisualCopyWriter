@@ -203,12 +203,16 @@ export async function POST(req: Request) {
             return NextResponse.json({ result: resultText });
         }
 
-        // 默认调用 Gemini 模型接口（通过 Cloudflare Worker 反向代理）
-        const response = await fetch(`https://gemini.wdqs.cn/v1beta/models/gemini-flash-latest:generateContent`, {
+        // 默认调用 Gemini 模型接口（通过代理）
+        const geminiProxyUrl = process.env.GEMINI_PROXY_URL || 'https://gemini.wdqs.cn';
+        const geminiProxySecret = process.env.GEMINI_PROXY_SECRET || '';
+
+        const response = await fetch(`${geminiProxyUrl}/v1beta/models/gemini-flash-latest:generateContent`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Origin': 'http://localhost:3000'
+                'Origin': 'http://localhost:3000',
+                'X-Proxy-Key': geminiProxySecret // [!] 新增的鉴权暗号
             },
             body: JSON.stringify({
                 systemInstruction: {
