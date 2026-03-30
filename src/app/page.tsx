@@ -80,15 +80,17 @@ export default function VisualCopywriter() {
             handleDrop={onDrop}
           />
 
-          <ResultGallery
-            images={images}
-            setImages={setImages}
-            removeImage={removeImage}
-            copyMode={copyMode}
-            modelProvider={modelProvider}
-            regenerateImage={regenerateImage}
-            setPreviewImage={setPreviewImage}
-          />
+          <div id="results-section">
+            <ResultGallery
+              images={images}
+              setImages={setImages}
+              removeImage={removeImage}
+              copyMode={copyMode}
+              modelProvider={modelProvider}
+              regenerateImage={regenerateImage}
+              setPreviewImage={setPreviewImage}
+            />
+          </div>
         </div>
       </main>
 

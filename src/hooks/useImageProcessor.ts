@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import exifr from 'exifr';
 
 // Define types
 export interface ImageItem {
@@ -11,10 +12,52 @@ export interface ImageItem {
   status: 'idle' | 'processing-image' | 'loading' | 'success' | 'error';
   result?: string;
   error?: string;
+  metadata?: {
+    date: string | null;
+    location: string | null;
+  };
 }
 
 export type ModelProvider = 'gemini' | 'gemini-flash' | 'qwen' | 'kimi';
 export type CopyMode = 'ai-original' | 'quote-style';
+
+// 辅助函数：反向地理编码（前端执行）
+async function reverseGeocodeUI(lat: number, lon: number): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&accept-language=zh`,
+      { headers: { 'User-Agent': 'VisualCopywriter-UI/1.0' } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const addr = data.address;
+    if (!addr) return data.display_name || null;
+
+    const parts: string[] = [];
+    if (addr.country && addr.country !== '中国' && addr.country !== 'China') parts.push(addr.country);
+    if (addr.state || addr.province) parts.push(addr.state || addr.province);
+    if (addr.city || addr.town || addr.county) parts.push(addr.city || addr.town || addr.county);
+    if (addr.suburb || addr.district) parts.push(addr.suburb || addr.district);
+    
+    return parts.length > 0 ? parts.join(' ') : (data.display_name || null);
+  } catch (e) {
+    console.error('UI Reverse geocode error:', e);
+    return null;
+  }
+}
+
+// 辅助函数：格式化日期
+function formatExifDateUI(exifData: any): string | null {
+  const dateField = exifData?.DateTimeOriginal || exifData?.CreateDate || exifData?.ModifyDate;
+  if (!dateField) return null;
+  try {
+    const d = dateField instanceof Date ? dateField : new Date(dateField as string | number);
+    if (isNaN(d.getTime())) return null;
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+  } catch {
+    return null;
+  }
+}
 
 export function useImageProcessor() {
   const [images, setImages] = useState<ImageItem[]>([]);
@@ -33,7 +76,21 @@ export function useImageProcessor() {
       .catch(console.error);
   }, []);
 
+  // 辅助函数：平滑滚动到结果区域
+  const scrollToResults = () => {
+    // 延迟一小段时间确保 DOM 已更新
+    setTimeout(() => {
+      const element = document.getElementById('results-section');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 150);
+  };
+
   const addFiles = async (newFiles: File[]) => {
+    // 处理开始前进行一次滚动，让用户看到占位符
+    scrollToResults();
+
     for (const file of newFiles) {
       const id = Math.random().toString(36).substring(7) + Date.now().toString();
 
@@ -46,6 +103,26 @@ export function useImageProcessor() {
       }]);
 
       try {
+        // 1. 提取元数据 (前端提取)
+        let date: string | null = null;
+        let location: string | null = null;
+        try {
+          const exifData = await exifr.parse(file, {
+            pick: ['DateTimeOriginal', 'CreateDate', 'ModifyDate', 'GPSLatitude', 'GPSLongitude', 'latitude', 'longitude']
+          });
+          if (exifData) {
+            date = formatExifDateUI(exifData);
+            const lat = exifData.latitude ?? exifData.GPSLatitude;
+            const lon = exifData.longitude ?? exifData.GPSLongitude;
+            if (typeof lat === 'number' && typeof lon === 'number') {
+              location = await reverseGeocodeUI(lat, lon);
+            }
+          }
+        } catch (exifErr) {
+          console.error("EXIF 提取失败:", exifErr);
+        }
+
+        // 2. HEIC 转换 (服务端辅助)
         let processFile = file;
         const isHeic = file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
 
@@ -63,7 +140,7 @@ export function useImageProcessor() {
             }
 
             const blob = await res.blob();
-            processFile = new File([blob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), { type: 'image/jpeg' });
+            processFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
           } catch (err: unknown) {
             console.error("服务端转换HEIC失败: ", err);
             throw new Error("HEIC 图片格式暂不支持或转换失败，请尝试其他格式");
@@ -73,16 +150,24 @@ export function useImageProcessor() {
         const imageCompressionModule = await import('browser-image-compression');
         const imageCompression = imageCompressionModule.default || imageCompressionModule;
         const options = {
-          maxSizeMB: 0.8,
-          maxWidthOrHeight: 1600,
+          maxSizeMB: 0.3,
+          maxWidthOrHeight: 1024,
           useWebWorker: true,
-          fileType: isHeic ? 'image/jpeg' : undefined
+          initialQuality: 0.75,
+          fileType: 'image/webp'
         };
-        const compressedFile = await (imageCompression as (f: File, o: unknown) => Promise<File>)(processFile, options);
+        const compressedBlob = await (imageCompression as (f: File, o: unknown) => Promise<Blob>)(processFile, options);
+        const compressedFile = new File([compressedBlob], file.name.replace(/\.[^.]+$/, '.webp'), { type: 'image/webp' });
         const previewUrl = URL.createObjectURL(compressedFile);
 
         setImages(prev => prev.map(img =>
-          img.id === id ? { ...img, file: compressedFile, previewUrl, status: 'idle' } : img
+          img.id === id ? { 
+            ...img, 
+            file: compressedFile, 
+            previewUrl, 
+            status: 'idle',
+            metadata: { date, location }
+          } : img
         ));
       } catch (error: unknown) {
         console.error("图片处理失败: ", error);
@@ -120,11 +205,12 @@ export function useImageProcessor() {
     });
   };
 
-  const callGeminiAPI = async (file: File, originalFile: File, prompt: string, provider: ModelProvider): Promise<string> => {
+  const callGeminiAPI = async (img: ImageItem, prompt: string, provider: ModelProvider): Promise<string> => {
     try {
       const formData = new FormData();
-      formData.append('image', file);
-      formData.append('originalImage', originalFile);
+      formData.append('image', img.file);
+      if (img.metadata?.date) formData.append('metadataDate', img.metadata.date);
+      if (img.metadata?.location) formData.append('metadataLocation', img.metadata.location);
       formData.append('prompt', prompt);
       formData.append('modelProvider', provider);
       formData.append('copyMode', copyMode);
@@ -148,7 +234,7 @@ export function useImageProcessor() {
   };
 
   const processImages = async () => {
-    const pendingImages = images.filter(img => img.status !== 'loading' && img.status !== 'processing-image');
+    const pendingImages = images.filter(img => img.status === 'idle' || img.status === 'success' || img.status === 'error');
     if (pendingImages.length === 0) return;
 
     setIsGlobalGenerating(true);
@@ -160,7 +246,7 @@ export function useImageProcessor() {
 
     const processPromises = pendingImages.map(async (img) => {
       try {
-        const resultText = await callGeminiAPI(img.file, img.originalFile, stylePrompt, modelProvider);
+        const resultText = await callGeminiAPI(img, stylePrompt, modelProvider);
         setImages(prev => prev.map(p =>
           p.id === img.id ? { ...p, status: 'success', result: resultText } : p
         ));
@@ -184,7 +270,7 @@ export function useImageProcessor() {
     ));
 
     try {
-      const resultText = await callGeminiAPI(imgToRegen.file, imgToRegen.originalFile, stylePrompt, modelProvider);
+      const resultText = await callGeminiAPI(imgToRegen, stylePrompt, modelProvider);
       setImages(prev => prev.map(p =>
         p.id === id ? { ...p, status: 'success', result: resultText } : p
       ));

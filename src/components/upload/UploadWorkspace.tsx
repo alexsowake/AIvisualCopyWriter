@@ -202,7 +202,7 @@ export function UploadWorkspace({
           {isGlobalGenerating ? (
             <>
               <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
-              AI 批量创作中…
+              {imagesCount > 1 ? 'AI 批量创作中…' : 'AI 创作中…'}
             </>
           ) : (
             '✦ 开始智能创作'

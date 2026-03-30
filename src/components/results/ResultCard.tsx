@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import { motion } from 'framer-motion';
 import { X, Loader2, Check, AlertCircle, ImageIcon, Download, RefreshCw, Copy } from 'lucide-react';
 import { ImageItem, CopyMode, ModelProvider } from '../../hooks/useImageProcessor';
 import { ExportCardTemplate } from './ExportCardTemplate';
@@ -36,8 +36,10 @@ export function ResultCard({
   copiedId,
 }: ResultCardProps) {
   return (
-    <div
-      className="animate-card-enter"
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       style={{
         background: 'var(--bg)',
         border: '1px solid var(--border)',
@@ -363,6 +365,6 @@ export function ResultCard({
       {img.status === 'success' && img.result && (
         <ExportCardTemplate id={img.id} previewUrl={img.previewUrl} result={img.result} copyMode={copyMode} />
       )}
-    </div>
+    </motion.div>
   );
 }
