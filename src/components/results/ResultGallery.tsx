@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import { ImageItem, CopyMode, ModelProvider } from '../../hooks/useImageProcessor';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ResultCard } from './ResultCard';
 import html2canvas from 'html2canvas';
+import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 interface ResultGalleryProps {
   images: ImageItem[];
@@ -14,6 +16,8 @@ interface ResultGalleryProps {
   modelProvider: ModelProvider;
   regenerateImage: (id: string) => void;
   setPreviewImage: (url: string) => void;
+  MAX_IMAGES: number;
+  toast: { message: string; type: 'info' | 'error' | 'success' } | null;
 }
 
 export function ResultGallery({
@@ -24,7 +28,9 @@ export function ResultGallery({
   copyMode,
   modelProvider,
   regenerateImage,
-  setPreviewImage
+  setPreviewImage,
+  MAX_IMAGES,
+  toast,
 }: ResultGalleryProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [exportModalImage, setExportModalImage] = useState<string | null>(null);
@@ -189,7 +195,7 @@ export function ResultGallery({
             fontFamily: "'Playfair Display', serif",
             fontStyle: 'italic',
           }}>
-            {images.length} 张
+            {images.length} / {MAX_IMAGES}
           </span>
         </div>
         <button
@@ -279,6 +285,41 @@ export function ResultGallery({
           </div>
         </div>
       )}
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: -20, x: '-50%' }}
+            style={{
+              position: 'fixed',
+              top: '24px',
+              left: '50%',
+              zIndex: 1000,
+              background: 'white',
+              borderRadius: '12px',
+              padding: '12px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
+              border: '1px solid var(--border)',
+              minWidth: '280px',
+              maxWidth: '90vw',
+              color: 'var(--fg)',
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '13.5px',
+              fontWeight: 450,
+            }}
+          >
+            {toast.type === 'error' && <AlertCircle size={18} style={{ color: '#c83c3c' }} />}
+            {toast.type === 'info' && <Info size={18} style={{ color: '#4a90e2' }} />}
+            {toast.type === 'success' && <CheckCircle2 size={18} style={{ color: '#2ecc71' }} />}
+            {toast.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

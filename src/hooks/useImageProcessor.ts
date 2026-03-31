@@ -67,9 +67,18 @@ export function useImageProcessor() {
   const [copyMode, setCopyMode] = useState<CopyMode>('quote-style');
   const [isGlobalGenerating, setIsGlobalGenerating] = useState<boolean>(false);
   const [modelName, setModelName] = useState<string>('AI');
+  const [toast, setToast] = useState<{ message: string; type: 'info' | 'error' | 'success' } | null>(null);
+
+  const MAX_IMAGES = 6;
 
   // Ref to track active fetch requests per image ID
   const activeRequests = useRef<Map<string, AbortController>>(new Map());
+
+  // Show a temporary toast notification
+  const showToast = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   useEffect(() => {
     fetch('/api/generate-copy')
@@ -106,10 +115,24 @@ export function useImageProcessor() {
   };
 
   const addFiles = async (newFiles: File[]) => {
+    let filesToProcess = newFiles;
+    const currentCount = images.length;
+
+    // Enforce 6 image limit
+    if (currentCount + newFiles.length > MAX_IMAGES) {
+      const remainingSlots = Math.max(0, MAX_IMAGES - currentCount);
+      if (remainingSlots === 0) {
+        showToast(`已达到最大限制（${MAX_IMAGES} 张），无法上传更多`, 'error');
+        return;
+      }
+      filesToProcess = newFiles.slice(0, remainingSlots);
+      showToast(`一次最多处理 ${MAX_IMAGES} 张图片，已为您选取前 ${remainingSlots} 张`, 'info');
+    }
+
     // 处理开始前进行一次滚动，让用户看到占位符
     scrollToResults();
 
-    for (const file of newFiles) {
+    for (const file of filesToProcess) {
       const id = Math.random().toString(36).substring(7) + Date.now().toString();
 
       setImages(prev => [...prev, {
@@ -473,6 +496,8 @@ export function useImageProcessor() {
     removeImage,
     stopGeneration,
     processImages,
-    regenerateImage
+    regenerateImage,
+    toast,
+    MAX_IMAGES
   };
 }

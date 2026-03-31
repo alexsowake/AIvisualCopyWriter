@@ -33,7 +33,9 @@ export default function VisualCopywriter() {
     removeImage,
     stopGeneration,
     processImages,
-    regenerateImage
+    regenerateImage,
+    toast,
+    MAX_IMAGES
   } = useImageProcessor();
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -92,6 +94,8 @@ export default function VisualCopywriter() {
               modelProvider={modelProvider}
               regenerateImage={regenerateImage}
               setPreviewImage={setPreviewImage}
+              MAX_IMAGES={MAX_IMAGES}
+              toast={toast}
             />
           </div>
         </div>
