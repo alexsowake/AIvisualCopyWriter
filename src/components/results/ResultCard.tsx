@@ -162,11 +162,11 @@ export function ResultCard({
               padding: '4px 9px', fontSize: '10px', fontWeight: 500,
               background: 'rgba(35, 26, 17, 0.75)',
               backdropFilter: 'blur(4px)',
-              color: 'white', letterSpacing: '0.04em',
+              color: 'white', letterSpacing: '0.1em',
               fontFamily: "'DM Sans', sans-serif",
             }}>
               <span style={{ fontSize: '9px', opacity: 0.8 }}>✦</span>
-              {MODEL_LABEL[modelProvider]}
+              {MODEL_LABEL[modelProvider].split(' ')[0]} {copyMode === 'ai-original' ? '瞎编' : '搬运'}
             </span>
           )}
           {/* No tag for error state to keep it clean */}
