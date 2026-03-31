@@ -77,14 +77,23 @@ export function useImageProcessor() {
   }, []);
 
   // 辅助函数：平滑滚动到结果区域
-  const scrollToResults = () => {
-    // 延迟一小段时间确保 DOM 已更新
+  const scrollToResults = (force = false) => {
+    // 只有在非生成状态或强制时才滚动
+    if (isGlobalGenerating && !force) return;
+
+    // 延迟一小段时间确保 DOM 已更新，同时也给移动端一点反应时间
     setTimeout(() => {
       const element = document.getElementById('results-section');
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // 使用 behavior: 'smooth' 可能在某些移动端全屏模式下有冲突
+        // 但这是目前最优雅的方式
+        const targetPosition = element.getBoundingClientRect().top + window.pageYOffset - 80;
+        window.scrollTo({
+          top: targetPosition,
+          behavior: 'smooth'
+        });
       }
-    }, 150);
+    }, 200);
   };
 
   const addFiles = async (newFiles: File[]) => {

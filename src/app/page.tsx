@@ -7,6 +7,7 @@ import { UploadWorkspace } from '../components/upload/UploadWorkspace';
 import { ResultGallery } from '../components/results/ResultGallery';
 import { Header } from '../components/common/Header';
 import { Footer } from '../components/common/Footer';
+import { MobileActionBar } from '../components/upload/MobileActionBar';
 import { ImagePreviewModal } from '../components/common/ImagePreviewModal';
 
 /* ─────────────────────────────────────────
@@ -96,6 +97,15 @@ export default function VisualCopywriter() {
 
       {/* ── Footer ── */}
       <Footer />
+
+      {/* ── Mobile Sticky Action Bar ── */}
+      <div className="lg:hidden">
+        <MobileActionBar 
+          imagesCount={images.length}
+          isGlobalGenerating={isGlobalGenerating}
+          processImages={processImages}
+        />
+      </div>
 
       {/* ── Image Preview Modal ── */}
       {previewImage && (
