@@ -31,6 +31,7 @@ export default function VisualCopywriter() {
     handleFileSelect,
     handleDrop,
     removeImage,
+    stopGeneration,
     processImages,
     regenerateImage
   } = useImageProcessor();
@@ -86,6 +87,7 @@ export default function VisualCopywriter() {
               images={images}
               setImages={setImages}
               removeImage={removeImage}
+              stopGeneration={stopGeneration}
               copyMode={copyMode}
               modelProvider={modelProvider}
               regenerateImage={regenerateImage}

@@ -9,6 +9,7 @@ interface ResultGalleryProps {
   images: ImageItem[];
   setImages: React.Dispatch<React.SetStateAction<ImageItem[]>>;
   removeImage: (id: string) => void;
+  stopGeneration: (id: string) => void;
   copyMode: CopyMode;
   modelProvider: ModelProvider;
   regenerateImage: (id: string) => void;
@@ -19,6 +20,7 @@ export function ResultGallery({
   images,
   setImages,
   removeImage,
+  stopGeneration,
   copyMode,
   modelProvider,
   regenerateImage,
@@ -222,6 +224,7 @@ export function ResultGallery({
             copyMode={copyMode}
             modelProvider={modelProvider}
             removeImage={removeImage}
+            stopGeneration={stopGeneration}
             setPreviewImage={setPreviewImage}
             handleExport={handleExport}
             regenerateImage={regenerateImage}

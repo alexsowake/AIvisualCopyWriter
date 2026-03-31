@@ -10,6 +10,7 @@ interface ResultCardProps {
   copyMode: CopyMode;
   modelProvider: ModelProvider;
   removeImage: (id: string) => void;
+  stopGeneration: (id: string) => void;
   setPreviewImage: (url: string) => void;
   handleExport: (id: string) => void;
   regenerateImage: (id: string) => void;
@@ -29,6 +30,7 @@ export function ResultCard({
   copyMode,
   modelProvider,
   removeImage,
+  stopGeneration,
   setPreviewImage,
   handleExport,
   regenerateImage,
@@ -104,29 +106,31 @@ export function ResultCard({
         />
 
         {/* Remove button */}
-        <button
-          onClick={() => removeImage(img.id)}
-          className="opacity-0 group-hover:opacity-100"
-          style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            padding: '5px',
-            background: 'rgba(45, 40, 35, 0.65)',
-            color: 'var(--bg)',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'opacity 0.18s ease, background 0.18s ease',
-            zIndex: 10,
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(100, 50, 40, 0.85)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(45, 40, 35, 0.65)')}
-        >
-          <X size={13} />
-        </button>
+        {(img.status !== 'loading') && (
+          <button
+            onClick={() => removeImage(img.id)}
+            className={['idle', 'error', 'processing-image'].includes(img.status) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              padding: '5px',
+              background: 'rgba(45, 40, 35, 0.65)',
+              color: 'var(--bg)',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'opacity 0.18s ease, background 0.18s ease',
+              zIndex: 10,
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(100, 50, 40, 0.85)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(45, 40, 35, 0.65)')}
+          >
+            <X size={13} />
+          </button>
+        )}
 
         {/* Status tag */}
         <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 10 }}>
@@ -165,17 +169,7 @@ export function ResultCard({
               {MODEL_LABEL[modelProvider]}
             </span>
           )}
-          {img.status === 'error' && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: '5px',
-              padding: '3px 8px', fontSize: '10.5px', fontWeight: 500,
-              background: 'rgba(200, 60, 60, 0.9)',
-              color: 'white', letterSpacing: '0.04em',
-            }}>
-              <AlertCircle size={10} />
-              失败
-            </span>
-          )}
+          {/* No tag for error state to keep it clean */}
         </div>
       </div>
 
@@ -216,26 +210,69 @@ export function ResultCard({
                 background: 'var(--surface-2)',
               }}
             />
-            <p style={{ fontSize: '12px', color: 'var(--fg-subtle)', animation: 'pulse 2s ease-in-out infinite' }}>
+            <p style={{ fontSize: '12px', color: 'var(--fg-subtle)', animation: 'pulse 2s ease-in-out infinite', marginBottom: '8px', textAlign: 'center' }}>
               {img.statusMessage || `${MODEL_LABEL[modelProvider]} 正在创作…`}
             </p>
+            <button
+              onClick={() => stopGeneration(img.id)}
+              style={{
+                fontSize: '11px',
+                color: 'var(--fg-muted)',
+                background: 'none',
+                border: '1px solid var(--border)',
+                padding: '4px 10px',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.color = '#c83c3c';
+                e.currentTarget.style.borderColor = '#c83c3c';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.color = 'var(--fg-muted)';
+                e.currentTarget.style.borderColor = 'var(--border)';
+              }}
+            >
+              停止生成
+            </button>
           </div>
         )}
 
-        {/* Error */}
+        {/* Error / Stopped */}
         {img.status === 'error' && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: '1rem', gap: '12px' }}>
-            <AlertCircle size={20} style={{ color: '#c83c3c' }} />
-            <p style={{ fontSize: '12.5px', color: '#ad3232', textAlign: 'center', lineHeight: 1.5 }}>{img.error}</p>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: '1.5rem', gap: '14px' }}>
+            <div
+              className="scan-animate"
+              style={{
+                width: '56px',
+                height: '3px',
+                background: 'var(--surface-2)',
+              }}
+            />
+            <p style={{ fontSize: '12px', color: 'var(--fg-subtle)', marginBottom: '8px', textAlign: 'center' }}>
+              已手动停止
+            </p>
             <button
               onClick={() => regenerateImage(img.id)}
               style={{
-                fontSize: '12px', fontWeight: 500, padding: '6px 14px',
-                background: 'var(--fg)', color: 'var(--bg)', border: 'none',
-                cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+                fontSize: '11px',
+                color: 'var(--fg)',
+                background: 'none',
+                border: '1px solid var(--border-strong)',
+                padding: '4px 14px',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'var(--surface)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'none';
               }}
             >
-              重新获取
+              重新生成
             </button>
           </div>
         )}

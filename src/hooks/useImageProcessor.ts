@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import exifr from 'exifr';
 
 // Define types
@@ -68,6 +68,9 @@ export function useImageProcessor() {
   const [isGlobalGenerating, setIsGlobalGenerating] = useState<boolean>(false);
   const [modelName, setModelName] = useState<string>('AI');
 
+  // Ref to track active fetch requests per image ID
+  const activeRequests = useRef<Map<string, AbortController>>(new Map());
+
   useEffect(() => {
     fetch('/api/generate-copy')
       .then(res => res.json())
@@ -75,6 +78,11 @@ export function useImageProcessor() {
         if (data.modelName) setModelName(data.modelName);
       })
       .catch(console.error);
+
+    // Cleanup: abort all active requests on unmount
+    return () => {
+      activeRequests.current.forEach(controller => controller.abort());
+    };
   }, []);
 
   // 辅助函数：平滑滚动到结果区域
@@ -208,6 +216,12 @@ export function useImageProcessor() {
   };
 
   const removeImage = (id: string) => {
+    // 取消可能正在进行的网络请求
+    if (activeRequests.current.has(id)) {
+      activeRequests.current.get(id)?.abort();
+      activeRequests.current.delete(id);
+    }
+
     setImages(prev => {
       const imageToRemove = prev.find(img => img.id === id);
       if (imageToRemove) URL.revokeObjectURL(imageToRemove.previewUrl);
@@ -215,7 +229,23 @@ export function useImageProcessor() {
     });
   };
 
-  const callGeminiAPI = async (img: ImageItem, prompt: string, provider: ModelProvider): Promise<string> => {
+  const stopGeneration = (id: string) => {
+    if (activeRequests.current.has(id)) {
+      activeRequests.current.get(id)?.abort();
+      activeRequests.current.delete(id);
+      
+      setImages(prev => prev.map(img => 
+        img.id === id ? { 
+          ...img, 
+          status: 'error', 
+          statusMessage: undefined, 
+          error: '已手动停止生成' 
+        } : img
+      ));
+    }
+  };
+
+  const callGeminiAPI = async (img: ImageItem, prompt: string, provider: ModelProvider, signal: AbortSignal): Promise<string> => {
     try {
       const formData = new FormData();
       formData.append('image', img.file);
@@ -228,6 +258,7 @@ export function useImageProcessor() {
       const response = await fetch('/api/generate-copy', {
         method: 'POST',
         body: formData,
+        signal,
       });
 
       if (!response.ok) {
@@ -238,6 +269,9 @@ export function useImageProcessor() {
       const data = await response.json();
       return data.result;
     } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw error; // 让上层 retry 逻辑感知到中止
+      }
       console.error("API 调用错误:", error);
       throw new Error(error instanceof Error ? error.message : '网络请求失败，请检查连接');
     }
@@ -266,12 +300,22 @@ export function useImageProcessor() {
       const maxRetries = 3;
       
       const attemptGenerate = async (): Promise<void> => {
+        // 为每次尝试创建一个 AbortController，也可以共用初始的一个
+        if (!activeRequests.current.has(img.id)) {
+          activeRequests.current.set(img.id, new AbortController());
+        }
+        const controller = activeRequests.current.get(img.id)!;
+
         try {
-          const resultText = await callGeminiAPI(img, stylePrompt, modelProvider);
+          const resultText = await callGeminiAPI(img, stylePrompt, modelProvider, controller.signal);
           setImages(prev => prev.map(p =>
             p.id === img.id ? { ...p, status: 'success', result: resultText, statusMessage: undefined } : p
           ));
+          activeRequests.current.delete(img.id);
         } catch (error: any) {
+          // 如果是主动中止，不进行后续 retry 或 错误设置
+          if (error.name === 'AbortError') return;
+
           const isRetryable = error.message.includes('503') || error.message.includes('429');
           
           if (isRetryable && retryCount < maxRetries) {
@@ -283,7 +327,7 @@ export function useImageProcessor() {
               } : p
             ));
             
-            // 指数退避: 1.5s, 3s, 6s...
+            // 指数退避
             await new Promise(resolve => setTimeout(resolve, 1500 * Math.pow(2, retryCount - 1)));
             return attemptGenerate();
           }
@@ -296,6 +340,7 @@ export function useImageProcessor() {
               error: error instanceof Error ? error.message : '生成失败，请重试' 
             } : p
           ));
+          activeRequests.current.delete(img.id);
         }
       };
 
@@ -325,12 +370,20 @@ export function useImageProcessor() {
     const maxRetries = 3;
 
     const attemptRegen = async (): Promise<void> => {
+      if (!activeRequests.current.has(id)) {
+        activeRequests.current.set(id, new AbortController());
+      }
+      const controller = activeRequests.current.get(id)!;
+
       try {
-        const resultText = await callGeminiAPI(imgToRegen, stylePrompt, modelProvider);
+        const resultText = await callGeminiAPI(imgToRegen, stylePrompt, modelProvider, controller.signal);
         setImages(prev => prev.map(p =>
           p.id === id ? { ...p, status: 'success', result: resultText, statusMessage: undefined } : p
         ));
+        activeRequests.current.delete(id);
       } catch (error: any) {
+        if (error.name === 'AbortError') return;
+
         const isRetryable = error.message.includes('503') || error.message.includes('429');
 
         if (isRetryable && retryCount < maxRetries) {
@@ -353,6 +406,7 @@ export function useImageProcessor() {
             error: error instanceof Error ? error.message : '生成失败，请重试' 
           } : p
         ));
+        activeRequests.current.delete(id);
       }
     };
 
@@ -374,6 +428,7 @@ export function useImageProcessor() {
     handleDrop,
     addFiles,
     removeImage,
+    stopGeneration,
     processImages,
     regenerateImage
   };
