@@ -9,8 +9,6 @@ interface UploadWorkspaceProps {
   setCopyMode: (mode: CopyMode) => void;
   stylePrompt: string;
   setStylePrompt: (prompt: string) => void;
-  modelProvider: ModelProvider;
-  setModelProvider: (provider: ModelProvider) => void;
   processImages: () => Promise<void>;
   isGlobalGenerating: boolean;
   imagesCount: number;
@@ -48,8 +46,6 @@ export function UploadWorkspace({
   setCopyMode,
   stylePrompt,
   setStylePrompt,
-  modelProvider,
-  setModelProvider,
   processImages,
   isGlobalGenerating,
   imagesCount,

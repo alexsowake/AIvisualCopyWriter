@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import { CopyMode } from '../../hooks/useImageProcessor';
 
 interface ExportCardTemplateProps {
@@ -18,10 +19,12 @@ export function ExportCardTemplate({ id, previewUrl, result, copyMode }: ExportC
         className="flex flex-col bg-white p-6 shadow-sm w-[400px] box-border"
       >
         <div className="w-full mb-6 pb-2 relative">
-          <img 
+          <Image 
             src={previewUrl} 
             alt="export" 
-            crossOrigin="anonymous" 
+            width={352}
+            height={352}
+            unoptimized={true}
             className="w-full h-auto rounded-lg drop-shadow-sm" 
             style={{ display: 'block' }}
           />

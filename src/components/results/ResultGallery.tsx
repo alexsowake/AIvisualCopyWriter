@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { ImageItem, CopyMode, ModelProvider } from '../../hooks/useImageProcessor';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResultCard } from './ResultCard';
@@ -16,6 +17,7 @@ interface ResultGalleryProps {
   modelProvider: ModelProvider;
   regenerateImage: (id: string) => void;
   setPreviewImage: (url: string) => void;
+  clearAllImages: () => void;
   MAX_IMAGES: number;
   toast: { message: string; type: 'info' | 'error' | 'success' } | null;
 }
@@ -29,6 +31,7 @@ export function ResultGallery({
   modelProvider,
   regenerateImage,
   setPreviewImage,
+  clearAllImages,
   MAX_IMAGES,
   toast,
 }: ResultGalleryProps) {
@@ -199,7 +202,7 @@ export function ResultGallery({
           </span>
         </div>
         <button
-          onClick={() => setImages([])}
+          onClick={clearAllImages}
           style={{
             fontSize: '12px',
             color: 'var(--fg-subtle)',
@@ -272,8 +275,11 @@ export function ResultGallery({
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
-            <img 
+            <Image 
                src={exportModalImage} alt="Exported" 
+               width={400}
+               height={600}
+               unoptimized={true}
                style={{ width: '100%', height: 'auto', borderRadius: '4px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', userSelect: 'auto', WebkitUserSelect: 'auto' }}
                onClick={e => e.stopPropagation()}
             />

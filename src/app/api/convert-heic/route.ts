@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const runtime = 'nodejs'; // 强制使用 Node.js 运行时以兼容 heic-convert 依赖的 Buffer/fs 逻辑
+
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();

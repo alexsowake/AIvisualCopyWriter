@@ -1,7 +1,8 @@
 "use client";
 
+import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { X, Loader2, Check, AlertCircle, ImageIcon, Download, RefreshCw, Copy } from 'lucide-react';
+import { X, Loader2, Check, ImageIcon, Download, RefreshCw, Copy } from 'lucide-react';
 import { ImageItem, CopyMode, ModelProvider } from '../../hooks/useImageProcessor';
 import { ExportCardTemplate } from './ExportCardTemplate';
 
@@ -74,13 +75,13 @@ export function ResultCard({
         }}
       >
         {img.previewUrl ? (
-          <img
+          <Image
             src={img.previewUrl}
             alt="Preview"
+            fill
+            unoptimized={true} // Blob URL 不支持 Next.js 服务端优化，需开启 unoptimized
             onClick={() => setPreviewImage(img.previewUrl)}
             style={{
-              width: '100%',
-              height: '100%',
               objectFit: 'contain',
               cursor: 'zoom-in',
               transition: 'transform 0.35s cubic-bezier(0.22,1,0.36,1)',

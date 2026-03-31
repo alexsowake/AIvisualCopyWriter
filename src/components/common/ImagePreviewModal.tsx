@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { X } from 'lucide-react';
 
 interface ImagePreviewModalProps {
@@ -42,17 +43,19 @@ export function ImagePreviewModal({ previewImage, onClose }: ImagePreviewModalPr
         >
           <X size={22} />
         </button>
-        <img
-          src={previewImage}
-          alt="Full Preview"
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            maxWidth: '100%',
-            maxHeight: '85vh',
-            objectFit: 'contain',
-            display: 'block',
-          }}
-        />
+        <div style={{ position: 'relative', width: '100%', height: '85vh' }}>
+          <Image
+            src={previewImage}
+            alt="Full Preview"
+            fill
+            unoptimized={true}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
+        </div>
       </div>
     </div>
   );

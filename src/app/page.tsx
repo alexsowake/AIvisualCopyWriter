@@ -31,6 +31,7 @@ export default function VisualCopywriter() {
     handleFileSelect,
     handleDrop,
     removeImage,
+    clearAllImages,
     stopGeneration,
     processImages,
     regenerateImage,
@@ -72,8 +73,6 @@ export default function VisualCopywriter() {
             setCopyMode={setCopyMode}
             stylePrompt={stylePrompt}
             setStylePrompt={setStylePrompt}
-            modelProvider={modelProvider}
-            setModelProvider={setModelProvider}
             processImages={processImages}
             isGlobalGenerating={isGlobalGenerating}
             imagesCount={images.length}
@@ -94,6 +93,7 @@ export default function VisualCopywriter() {
               modelProvider={modelProvider}
               regenerateImage={regenerateImage}
               setPreviewImage={setPreviewImage}
+              clearAllImages={clearAllImages}
               MAX_IMAGES={MAX_IMAGES}
               toast={toast}
             />

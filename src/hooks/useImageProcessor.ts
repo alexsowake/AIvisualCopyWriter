@@ -47,8 +47,19 @@ async function reverseGeocodeUI(lat: number, lon: number): Promise<string | null
   }
 }
 
+// 定义 EXIF 数据的精确接口，避免使用 any
+interface ExifData {
+  DateTimeOriginal?: Date | string;
+  CreateDate?: Date | string;
+  ModifyDate?: Date | string;
+  latitude?: number;
+  longitude?: number;
+  GPSLatitude?: number;
+  GPSLongitude?: number;
+}
+
 // 辅助函数：格式化日期
-function formatExifDateUI(exifData: any): string | null {
+function formatExifDateUI(exifData: ExifData): string | null {
   const dateField = exifData?.DateTimeOriginal || exifData?.CreateDate || exifData?.ModifyDate;
   if (!dateField) return null;
   try {
@@ -89,8 +100,9 @@ export function useImageProcessor() {
       .catch(console.error);
 
     // Cleanup: abort all active requests on unmount
+    const currentActiveRequests = activeRequests.current; // 捕获当前 Ref 值以闭包安全地执行清理
     return () => {
-      activeRequests.current.forEach(controller => controller.abort());
+      currentActiveRequests.forEach(controller => controller.abort());
     };
   }, []);
 
@@ -247,9 +259,25 @@ export function useImageProcessor() {
 
     setImages(prev => {
       const imageToRemove = prev.find(img => img.id === id);
-      if (imageToRemove) URL.revokeObjectURL(imageToRemove.previewUrl);
+      // 释放 ObjectURL 内存
+      if (imageToRemove?.previewUrl) URL.revokeObjectURL(imageToRemove.previewUrl);
       return prev.filter(img => img.id !== id);
     });
+  };
+
+  /**
+   * 清空所有图片并释放内存
+   */
+  const clearAllImages = () => {
+    setImages(prev => {
+      prev.forEach(img => {
+        if (img.previewUrl) URL.revokeObjectURL(img.previewUrl);
+      });
+      return [];
+    });
+    // 同时中断所有正在进行的请求
+    activeRequests.current.forEach(controller => controller.abort());
+    activeRequests.current.clear();
   };
 
   const stopGeneration = (id: string) => {
@@ -294,8 +322,8 @@ export function useImageProcessor() {
 
       // Robust cleaning of the AI response
       return cleanAIResponse(data.result);
-    } catch (error: any) {
-      if (error.name === 'AbortError') throw error;
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') throw error;
       console.error('API Error:', error);
       throw error;
     }
@@ -319,11 +347,10 @@ export function useImageProcessor() {
         // Common likely keys for content
         cleaned = obj.content || obj.result || obj.caption || obj.text || obj.narration || obj.quote || cleaned;
         if (typeof cleaned !== 'string') cleaned = JSON.stringify(cleaned);
-      } catch (e) { /* ignore parse error */ }
+      } catch { /* ignore parse error */ }
     }
 
     // 3. Strip "thought", "thinking", "analysis" lines (some models prefix thoughts)
-    // Handles matches like "thought: xxx", "thought": "xxx", "thinking": xxx, etc.
     const thoughtPatterns = [
       /^["']?thought["']?\s*[:：]\s*.*$/gim,
       /^["']?thinking["']?\s*[:：]\s*.*$/gim,
@@ -378,11 +405,12 @@ export function useImageProcessor() {
             p.id === img.id ? { ...p, status: 'success', result: resultText, statusMessage: undefined } : p
           ));
           activeRequests.current.delete(img.id);
-        } catch (error: any) {
+        } catch (error: unknown) {
           // 如果是主动中止，不进行后续 retry 或 错误设置
-          if (error.name === 'AbortError') return;
+          if (error instanceof Error && error.name === 'AbortError') return;
 
-          const isRetryable = error.message.includes('503') || error.message.includes('429');
+          const errorMessage = error instanceof Error ? error.message : '生成失败，请重试';
+          const isRetryable = errorMessage.includes('503') || errorMessage.includes('429');
           
           if (isRetryable && retryCount < maxRetries) {
             retryCount++;
@@ -403,7 +431,7 @@ export function useImageProcessor() {
               ...p, 
               status: 'error', 
               statusMessage: undefined,
-              error: error instanceof Error ? error.message : '生成失败，请重试' 
+              error: errorMessage
             } : p
           ));
           activeRequests.current.delete(img.id);
@@ -447,10 +475,11 @@ export function useImageProcessor() {
           p.id === id ? { ...p, status: 'success', result: resultText, statusMessage: undefined } : p
         ));
         activeRequests.current.delete(id);
-      } catch (error: any) {
-        if (error.name === 'AbortError') return;
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'AbortError') return;
 
-        const isRetryable = error.message.includes('503') || error.message.includes('429');
+        const errorMessage = error instanceof Error ? error.message : '生成失败，请重试';
+        const isRetryable = errorMessage.includes('503') || errorMessage.includes('429');
 
         if (isRetryable && retryCount < maxRetries) {
           retryCount++;
@@ -469,7 +498,7 @@ export function useImageProcessor() {
             ...p, 
             status: 'error', 
             statusMessage: undefined,
-            error: error instanceof Error ? error.message : '生成失败，请重试' 
+            error: errorMessage
           } : p
         ));
         activeRequests.current.delete(id);
@@ -494,6 +523,7 @@ export function useImageProcessor() {
     handleDrop,
     addFiles,
     removeImage,
+    clearAllImages,
     stopGeneration,
     processImages,
     regenerateImage,
