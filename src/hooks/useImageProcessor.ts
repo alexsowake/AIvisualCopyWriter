@@ -10,6 +10,7 @@ export interface ImageItem {
   originalFile: File;
   previewUrl: string;
   status: 'idle' | 'processing-image' | 'loading' | 'success' | 'error';
+  statusMessage?: string; // Humanized status string
   result?: string;
   error?: string;
   metadata?: {
@@ -249,21 +250,56 @@ export function useImageProcessor() {
     setIsGlobalGenerating(true);
 
     const pendingIds = pendingImages.map(img => img.id);
+    const modelDisplayName = modelProvider === 'kimi' ? 'Kimi' : (modelProvider === 'qwen' ? '通义千问' : 'Gemini');
+    
     setImages(prev => prev.map(img =>
-      pendingIds.includes(img.id) ? { ...img, status: 'loading', error: undefined } : img
+      pendingIds.includes(img.id) ? { 
+        ...img, 
+        status: 'loading', 
+        statusMessage: `${modelDisplayName} 正在创作中，预计耗时 30 秒`,
+        error: undefined 
+      } : img
     ));
 
     const processPromises = pendingImages.map(async (img) => {
-      try {
-        const resultText = await callGeminiAPI(img, stylePrompt, modelProvider);
-        setImages(prev => prev.map(p =>
-          p.id === img.id ? { ...p, status: 'success', result: resultText } : p
-        ));
-      } catch (error: unknown) {
-        setImages(prev => prev.map(p =>
-          p.id === img.id ? { ...p, status: 'error', error: error instanceof Error ? error.message : '生成失败，请重试' } : p
-        ));
-      }
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      const attemptGenerate = async (): Promise<void> => {
+        try {
+          const resultText = await callGeminiAPI(img, stylePrompt, modelProvider);
+          setImages(prev => prev.map(p =>
+            p.id === img.id ? { ...p, status: 'success', result: resultText, statusMessage: undefined } : p
+          ));
+        } catch (error: any) {
+          const isRetryable = error.message.includes('503') || error.message.includes('429');
+          
+          if (isRetryable && retryCount < maxRetries) {
+            retryCount++;
+            setImages(prev => prev.map(p =>
+              p.id === img.id ? { 
+                ...p, 
+                statusMessage: `服务繁忙，正在帮你第 ${retryCount} 次重试...` 
+              } : p
+            ));
+            
+            // 指数退避: 1.5s, 3s, 6s...
+            await new Promise(resolve => setTimeout(resolve, 1500 * Math.pow(2, retryCount - 1)));
+            return attemptGenerate();
+          }
+
+          setImages(prev => prev.map(p =>
+            p.id === img.id ? { 
+              ...p, 
+              status: 'error', 
+              statusMessage: undefined,
+              error: error instanceof Error ? error.message : '生成失败，请重试' 
+            } : p
+          ));
+        }
+      };
+
+      return attemptGenerate();
     });
 
     await Promise.allSettled(processPromises);
@@ -274,20 +310,53 @@ export function useImageProcessor() {
     const imgToRegen = images.find(img => img.id === id);
     if (!imgToRegen) return;
 
+    const modelDisplayName = modelProvider === 'kimi' ? 'Kimi' : (modelProvider === 'qwen' ? '通义千问' : 'Gemini');
+
     setImages(prev => prev.map(img =>
-      img.id === id ? { ...img, status: 'loading', error: undefined } : img
+      img.id === id ? { 
+        ...img, 
+        status: 'loading', 
+        statusMessage: `${modelDisplayName} 正在重新创作，预计耗时 30 秒`,
+        error: undefined 
+      } : img
     ));
 
-    try {
-      const resultText = await callGeminiAPI(imgToRegen, stylePrompt, modelProvider);
-      setImages(prev => prev.map(p =>
-        p.id === id ? { ...p, status: 'success', result: resultText } : p
-      ));
-    } catch (error: unknown) {
-      setImages(prev => prev.map(p =>
-        p.id === id ? { ...p, status: 'error', error: error instanceof Error ? error.message : '生成失败，请重试' } : p
-      ));
-    }
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    const attemptRegen = async (): Promise<void> => {
+      try {
+        const resultText = await callGeminiAPI(imgToRegen, stylePrompt, modelProvider);
+        setImages(prev => prev.map(p =>
+          p.id === id ? { ...p, status: 'success', result: resultText, statusMessage: undefined } : p
+        ));
+      } catch (error: any) {
+        const isRetryable = error.message.includes('503') || error.message.includes('429');
+
+        if (isRetryable && retryCount < maxRetries) {
+          retryCount++;
+          setImages(prev => prev.map(p =>
+            p.id === id ? { 
+              ...p, 
+              statusMessage: `服务繁忙，正在为您全力重试 (${retryCount}/3)...` 
+            } : p
+          ));
+          await new Promise(resolve => setTimeout(resolve, 1500 * Math.pow(2, retryCount - 1)));
+          return attemptRegen();
+        }
+
+        setImages(prev => prev.map(p =>
+          p.id === id ? { 
+            ...p, 
+            status: 'error', 
+            statusMessage: undefined,
+            error: error instanceof Error ? error.message : '生成失败，请重试' 
+          } : p
+        ));
+      }
+    };
+
+    await attemptRegen();
   };
 
   return {

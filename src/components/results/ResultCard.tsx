@@ -217,7 +217,7 @@ export function ResultCard({
               }}
             />
             <p style={{ fontSize: '12px', color: 'var(--fg-subtle)', animation: 'pulse 2s ease-in-out infinite' }}>
-              {MODEL_LABEL[modelProvider]} 正在创作…
+              {img.statusMessage || `${MODEL_LABEL[modelProvider]} 正在创作…`}
             </p>
           </div>
         )}
