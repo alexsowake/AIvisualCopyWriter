@@ -267,14 +267,57 @@ export function useImageProcessor() {
       }
 
       const data = await response.json();
-      return data.result;
-    } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw error; // 让上层 retry 逻辑感知到中止
-      }
-      console.error("API 调用错误:", error);
-      throw new Error(error instanceof Error ? error.message : '网络请求失败，请检查连接');
+      if (data.error) throw new Error(data.error);
+
+      // Robust cleaning of the AI response
+      return cleanAIResponse(data.result);
+    } catch (error: any) {
+      if (error.name === 'AbortError') throw error;
+      console.error('API Error:', error);
+      throw error;
     }
+  };
+
+  /**
+   * Cleans AI generated text from common artifacts (JSON, thought markers, etc.)
+   */
+  const cleanAIResponse = (text: string): string => {
+    if (!text) return "";
+    
+    let cleaned = text.trim();
+
+    // 1. Remove Markdown code blocks (JSON blocks primarily)
+    cleaned = cleaned.replace(/```(json)?\s*([\s\S]*?)\s*```/g, "$2");
+
+    // 2. Try to parse as JSON if it looks like one (extract 'content' or 'result' or 'caption' if present)
+    if (cleaned.startsWith('{') && cleaned.endsWith('}')) {
+      try {
+        const obj = JSON.parse(cleaned);
+        // Common likely keys for content
+        cleaned = obj.content || obj.result || obj.caption || obj.text || obj.narration || obj.quote || cleaned;
+        if (typeof cleaned !== 'string') cleaned = JSON.stringify(cleaned);
+      } catch (e) { /* ignore parse error */ }
+    }
+
+    // 3. Strip "thought", "thinking", "analysis" lines (some models prefix thoughts)
+    // Handles matches like "thought: xxx", "thought": "xxx", "thinking": xxx, etc.
+    const thoughtPatterns = [
+      /^["']?thought["']?\s*[:：]\s*.*$/gim,
+      /^["']?thinking["']?\s*[:：]\s*.*$/gim,
+      /^["']?analysis["']?\s*[:：]\s*.*$/gim,
+      /^<thought>[\s\S]*?<\/thought>/gi,
+      /^\[thought\][\s\S]*?\[\/thought\]/gi,
+      /^\(?Internal Thought:.*?\)?$/gim
+    ];
+    
+    thoughtPatterns.forEach(pattern => {
+      cleaned = cleaned.replace(pattern, "");
+    });
+
+    // 4. Final trim and remove any leftover thought artifacts like lone quotes or key names
+    cleaned = cleaned.replace(/^(thought|thinking|content|result|caption|text)\s*[:：]\s*/i, "");
+    
+    return cleaned.trim();
   };
 
   const processImages = async () => {

@@ -27,23 +27,39 @@ export function ExportCardTemplate({ id, previewUrl, result, copyMode }: ExportC
           />
         </div>
         {copyMode === 'quote-style' ? (
-          <div className="flex-1 flex flex-col px-4">
-            <div className="text-base text-left leading-relaxed text-slate-800" style={{ fontFamily: "'LXGW WenKai', serif" }}>
+          <div className="flex-1 flex flex-col px-4 text-slate-800" style={{ fontFamily: "'LXGW WenKai', serif" }}>
+            <div className="text-base text-left leading-relaxed">
               {result.split('\n\n')[0]}
             </div>
             {result.split('\n\n')[1] && (
-              <div className="text-right mt-4 text-slate-500 text-sm italic" style={{ fontFamily: "'LXGW WenKai', serif" }}>
+              <div 
+                className="text-right mt-5 text-slate-500 text-[13.5px] italic leading-relaxed" 
+                style={{ 
+                  maxWidth: '85%', 
+                  marginLeft: 'auto',
+                  wordBreak: 'break-all',
+                  overflowWrap: 'break-word'
+                }}
+              >
                 {result.split('\n\n')[1]}
               </div>
             )}
           </div>
         ) : (
-          <div className="flex-1 flex flex-col px-4">
-            <div className="text-base text-left leading-relaxed text-slate-800" style={{ fontFamily: "'LXGW WenKai', serif" }}>
+          <div className="flex-1 flex flex-col px-4 text-slate-800" style={{ fontFamily: "'LXGW WenKai', serif" }}>
+            <div className="text-base text-left leading-relaxed">
               {result.split('\n\n')[0]}
             </div>
             {result.split('\n\n').slice(1).join('\n\n').trim() && (
-              <div className="text-right mt-4 text-slate-500 text-sm italic" style={{ fontFamily: "'LXGW WenKai', serif" }}>
+              <div 
+                className="text-right mt-5 text-slate-500 text-[13.5px] italic leading-relaxed"
+                style={{ 
+                  maxWidth: '85%', 
+                  marginLeft: 'auto',
+                  wordBreak: 'break-all',
+                  overflowWrap: 'break-word'
+                }}
+              >
                 {result.split('\n\n').slice(1).join('\n').split('\n').map((line: string, i: number) => (
                   <div key={i}>{line}</div>
                 ))}
