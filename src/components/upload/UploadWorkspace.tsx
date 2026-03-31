@@ -59,10 +59,6 @@ export function UploadWorkspace({
   handleDragLeave,
   handleDrop,
 }: UploadWorkspaceProps) {
-  const MODELS: { value: ModelProvider; label: string }[] = [
-    { value: 'gemini', label: 'Gemini 3 Flash' },
-    { value: 'kimi',   label: 'Kimi K2.5' }
-  ];
 
   return (
     <div className="flex flex-col-reverse lg:grid lg:grid-cols-2 gap-8 lg:gap-20">
@@ -107,34 +103,6 @@ export function UploadWorkspace({
               ? 'AI 根据画面意境，原创一句极简旁白'
               : '从文学、电影台词、歌词中匹配最契合的引文'}
           </p>
-        </div>
-
-        {/* Model Selector */}
-        <div style={{ marginBottom: '2rem' }}>
-          <span style={FIELD_LABEL_STYLE}>AI 模型</span>
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            {MODELS.map(m => (
-              <button
-                key={m.value}
-                type="button"
-                onClick={() => setModelProvider(m.value)}
-                style={{
-                  padding: '8px 14px',
-                  fontSize: '12.5px',
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontWeight: modelProvider === m.value ? 500 : 400,
-                  color: modelProvider === m.value ? 'var(--fg)' : 'var(--fg-subtle)',
-                  background: modelProvider === m.value ? 'var(--surface)' : 'none',
-                  border: '1px solid',
-                  borderColor: modelProvider === m.value ? 'var(--border-strong)' : 'var(--border)',
-                  cursor: 'pointer',
-                  transition: 'all 0.18s ease',
-                }}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Style Prompt */}

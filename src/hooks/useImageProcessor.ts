@@ -64,7 +64,7 @@ export function useImageProcessor() {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [stylePrompt, setStylePrompt] = useState<string>('');
   const [modelProvider, setModelProvider] = useState<ModelProvider>('gemini');
-  const [copyMode, setCopyMode] = useState<CopyMode>('ai-original');
+  const [copyMode, setCopyMode] = useState<CopyMode>('quote-style');
   const [isGlobalGenerating, setIsGlobalGenerating] = useState<boolean>(false);
   const [modelName, setModelName] = useState<string>('AI');
 
