@@ -20,7 +20,7 @@ import { ImagePreviewModal } from '../components/common/ImagePreviewModal';
 export default function VisualCopywriter() {
   const {
     images,
-    setImages,
+    // 为了通过生产环境的 ESLint 检查，移除了已不再直接使用的 setImages
     stylePrompt,
     setStylePrompt,
     modelProvider,
