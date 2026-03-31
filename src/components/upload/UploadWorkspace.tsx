@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Loader2 } from 'lucide-react';
-import { CopyMode, ModelProvider } from '../../hooks/useImageProcessor';
+import { CopyMode } from '../../hooks/useImageProcessor';
 
 interface UploadWorkspaceProps {
   copyMode: CopyMode;

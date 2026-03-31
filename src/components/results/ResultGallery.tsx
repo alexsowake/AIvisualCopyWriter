@@ -10,7 +10,6 @@ import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 interface ResultGalleryProps {
   images: ImageItem[];
-  setImages: React.Dispatch<React.SetStateAction<ImageItem[]>>;
   removeImage: (id: string) => void;
   stopGeneration: (id: string) => void;
   copyMode: CopyMode;
@@ -24,7 +23,6 @@ interface ResultGalleryProps {
 
 export function ResultGallery({
   images,
-  setImages,
   removeImage,
   stopGeneration,
   copyMode,

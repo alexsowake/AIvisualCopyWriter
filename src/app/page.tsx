@@ -24,7 +24,6 @@ export default function VisualCopywriter() {
     stylePrompt,
     setStylePrompt,
     modelProvider,
-    setModelProvider,
     copyMode,
     setCopyMode,
     isGlobalGenerating,
@@ -86,7 +85,6 @@ export default function VisualCopywriter() {
           <div id="results-section">
             <ResultGallery
               images={images}
-              setImages={setImages}
               removeImage={removeImage}
               stopGeneration={stopGeneration}
               copyMode={copyMode}
