@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { ImageItem, CopyMode, ModelProvider } from '../../hooks/useImageProcessor';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResultCard } from './ResultCard';
-import html2canvas from 'html2canvas';
+// html2canvas 改为动态导入，避免拖慢首次编译（1.8MB）
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 interface ResultGalleryProps {
@@ -89,6 +89,7 @@ export function ResultGallery({
       await new Promise(resolve => requestAnimationFrame(resolve));
       await new Promise(resolve => setTimeout(resolve, 200));
 
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(node, {
         scale: 2,
         useCORS: true,
