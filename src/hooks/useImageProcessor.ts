@@ -161,7 +161,8 @@ export function useImageProcessor() {
         let location: string | null = null;
         try {
           const exifData = await exifr.parse(file, {
-            pick: ['DateTimeOriginal', 'CreateDate', 'ModifyDate', 'GPSLatitude', 'GPSLongitude', 'latitude', 'longitude']
+            pick: ['DateTimeOriginal', 'CreateDate', 'ModifyDate', 'GPSLatitude', 'GPSLongitude', 'latitude', 'longitude', 'Orientation', 'Make', 'Model'],
+            gps: true,
           });
           if (exifData) {
             date = formatExifDateUI(exifData);
@@ -528,6 +529,7 @@ export function useImageProcessor() {
     processImages,
     regenerateImage,
     toast,
+    showToast,
     MAX_IMAGES
   };
 }

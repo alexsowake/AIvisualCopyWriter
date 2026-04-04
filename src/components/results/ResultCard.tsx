@@ -17,6 +17,7 @@ interface ResultCardProps {
   regenerateImage: (id: string) => void;
   copyToClipboard: (text: string, id: string) => void;
   copiedId: string | null;
+  exportingId: string | null;
 }
 
 const MODEL_LABEL: Record<ModelProvider, string> = {
@@ -37,7 +38,9 @@ export function ResultCard({
   regenerateImage,
   copyToClipboard,
   copiedId,
+  exportingId,
 }: ResultCardProps) {
+  const isExporting = exportingId === img.id;
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -331,10 +334,13 @@ export function ResultCard({
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', paddingTop: '0.75rem', marginTop: 'auto', flexWrap: 'wrap' }}>
               {[
                 {
-                  label: '导出图片',
-                  icon: <Download size={12} />,
-                  onClick: () => { console.log('[ResultCard] Export button clicked, img.id:', img.id); handleExport(img.id); },
+                  label: isExporting ? '生成中...' : '导出图片',
+                  icon: isExporting
+                    ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                    : <Download size={12} />,
+                  onClick: () => { if (!isExporting) handleExport(img.id); },
                   primary: true,
+                  disabled: isExporting,
                 },
                 {
                   label: '重新生成',

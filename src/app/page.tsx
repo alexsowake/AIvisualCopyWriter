@@ -35,6 +35,7 @@ export default function VisualCopywriter() {
     processImages,
     regenerateImage,
     toast,
+    showToast,
     MAX_IMAGES
   } = useImageProcessor();
 
@@ -94,6 +95,7 @@ export default function VisualCopywriter() {
               clearAllImages={clearAllImages}
               MAX_IMAGES={MAX_IMAGES}
               toast={toast}
+              showToast={showToast}
             />
           </div>
         </div>

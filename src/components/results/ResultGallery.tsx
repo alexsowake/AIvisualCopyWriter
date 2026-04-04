@@ -19,6 +19,7 @@ interface ResultGalleryProps {
   clearAllImages: () => void;
   MAX_IMAGES: number;
   toast: { message: string; type: 'info' | 'error' | 'success' } | null;
+  showToast: (message: string, type: 'info' | 'error' | 'success') => void;
 }
 
 export function ResultGallery({
@@ -32,10 +33,12 @@ export function ResultGallery({
   clearAllImages,
   MAX_IMAGES,
   toast,
+  showToast,
 }: ResultGalleryProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [exportModalImage, setExportModalImage] = useState<string | null>(null);
   const [exportGuidance, setExportGuidance] = useState<string | null>(null);
+  const [exportingId, setExportingId] = useState<string | null>(null);
 
   const copyToClipboard = async (text: string, id: string) => {
     try {
@@ -47,123 +50,142 @@ export function ResultGallery({
     }
   };
 
-  const handleExport = async (id: string) => {
-    console.log('[Export] handleExport called with id:', id);
-    const wrapper = document.getElementById(`export-wrapper-${id}`);
-    const node = document.getElementById(`export-card-${id}`);
-    console.log('[Export] wrapper:', wrapper, 'node:', node);
-    if (!node || !wrapper) {
-      console.error('[Export] ABORT: wrapper or node not found in DOM!');
+  // ── 跨平台分发导出：mobile Web Share / modal fallback / desktop download ──
+  const performExport = async (dataUrl: string, filename: string) => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/.test(navigator.userAgent);
+    const isMobile = isIOS || isAndroid;
+
+    if (isMobile) {
+      let nativeShareSuccess = false;
+      try {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], filename, { type: 'image/jpeg' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          if (isIOS) {
+            setExportGuidance('💡 提示：在弹出菜单中选择「存储图像」即可保存');
+          }
+          await navigator.share({ files: [file], title: '时间胶囊' });
+          nativeShareSuccess = true;
+        }
+      } catch (shareErr) {
+        console.warn('[Export] Web Share API failed/aborted, falling back to modal', shareErr);
+      } finally {
+        setTimeout(() => setExportGuidance(null), 1000);
+      }
+
+      if (!nativeShareSuccess) {
+        setExportModalImage(dataUrl);
+      }
       return;
     }
 
-    const currentParent = wrapper.parentNode;
-    const nextSibling = wrapper.nextSibling;
+    // Desktop
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = dataUrl;
+    link.click();
+  };
+
+  const handleExport = async (id: string) => {
+    setExportingId(id);
+
+    const wrapper = document.getElementById(`export-wrapper-${id}`);
+    if (!wrapper) { setExportingId(null); return; }
+
+    const imgItem = images.find(i => i.id === id);
+    let originalUrl: string | null = null;
+    let cloneWrapper: HTMLElement | null = null;
 
     try {
       await document.fonts.ready;
 
-      // Ensure the image inside the export template is fully loaded before taking screenshot
-      const imgEl = node.querySelector('img') as HTMLImageElement | null;
-      if (imgEl) {
-        await new Promise<void>((resolve) => {
-          if (imgEl.complete && imgEl.naturalWidth > 0) {
-            resolve();
-            return;
-          }
-          imgEl.onload = () => resolve();
-          imgEl.onerror = () => resolve(); // prevent hang on error
+      // ── 深度克隆，彻底脱离 React 虚拟 DOM 控制 ──
+      cloneWrapper = wrapper.cloneNode(true) as HTMLElement;
+      cloneWrapper.style.position = 'fixed';
+      cloneWrapper.style.left = '0';
+      cloneWrapper.style.top = '0';
+      cloneWrapper.style.opacity = '1';
+      cloneWrapper.style.zIndex = '-9999';
+      cloneWrapper.style.pointerEvents = 'none';
+      document.body.appendChild(cloneWrapper);
+
+      const cloneNode = cloneWrapper.querySelector(`#export-card-${id}`) as HTMLElement;
+      const cloneImgEl = cloneWrapper.querySelector('img') as HTMLImageElement | null;
+
+      // ── 替换为原图高清版本，onerror 时回退到 previewUrl ──
+      if (imgItem?.originalFile && cloneImgEl) {
+        originalUrl = URL.createObjectURL(imgItem.originalFile);
+        cloneImgEl.removeAttribute('srcset');
+        cloneImgEl.removeAttribute('sizes');
+        cloneImgEl.src = originalUrl;
+
+        await new Promise<void>(resolve => {
+          if (cloneImgEl.complete && cloneImgEl.naturalWidth > 0) { resolve(); return; }
+
+          cloneImgEl.onload = () => resolve();
+
+          // 原图加载失败（如非 Safari 浏览器遇到 HEIC），回退到已转换的 WebP 预览图
+          cloneImgEl.onerror = () => {
+            console.warn('[Export] 原图加载失败，回退使用预览图');
+            cloneImgEl.src = imgItem.previewUrl ?? '';
+            cloneImgEl.onload = () => resolve();
+            cloneImgEl.onerror = () => resolve();
+          };
         });
+
+        await cloneImgEl.decode().catch(() => {});
       }
 
-      // Temporarily move the wrapper to body to escape any CSS `transform` stacking contexts from parent cards
-      document.body.appendChild(wrapper);
-
-      wrapper.style.position = 'fixed';
-      wrapper.style.left = '0';
-      wrapper.style.top = '0';
-      wrapper.style.opacity = '1'; // Must be 1 — opacity:0 on parent causes html2canvas to produce blank output
-      wrapper.style.zIndex = '-9999'; // Behind all page content, invisible to user
-      wrapper.style.pointerEvents = 'none';
-
       await new Promise(resolve => requestAnimationFrame(resolve));
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(node, {
-        scale: 2,
+      const canvas = await html2canvas(cloneNode, {
+        scale: 3,
         useCORS: true,
         backgroundColor: '#FAF9F6',
         logging: false,
       });
 
-      // Cleanup CSS
-      wrapper.style.position = 'absolute';
-      wrapper.style.left = '-9999px';
-      wrapper.style.top = '-9999px';
-      wrapper.style.opacity = '0';
-      wrapper.style.zIndex = '-1';
-      
-      // Restore to original DOM position
-      if (currentParent) {
-        currentParent.insertBefore(wrapper, nextSibling);
-      }
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      const filename = `时间胶囊-${Date.now()}.jpg`;
+      await performExport(dataUrl, filename);
 
-      const dataUrl = canvas.toDataURL('image/png');
-      const filename = `时间胶囊-${Date.now()}.png`;
-
-      // ── Cross-Platform Export Logic ──
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      const isAndroid = /Android/.test(navigator.userAgent);
-      const isMobile = isIOS || isAndroid;
-
-      if (isMobile) {
-        let nativeShareSuccess = false;
-        try {
-          const res = await fetch(dataUrl);
-          const blob = await res.blob();
-          const file = new File([blob], filename, { type: 'image/png' });
-          
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-             if (isIOS) {
-               setExportGuidance('💡 提示：在弹出菜单中选择「存储图像」即可保存');
-             }
-             await navigator.share({
-               files: [file],
-               title: '时间胶囊'
-             });
-             nativeShareSuccess = true;
-          }
-        } catch (shareErr) {
-          console.warn('[Export] Web Share API failed/aborted, falling back to modal', shareErr);
-        } finally {
-          setTimeout(() => setExportGuidance(null), 1000); // clear toast after native sheet handles it
-        }
-
-        if (!nativeShareSuccess) {
-           // Provide fallback UI for Webview (WeChat) or Timeout
-           setExportModalImage(dataUrl);
-        }
-        return;
-      }
-
-      // Desktop Flow
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = dataUrl;
-      link.click();
     } catch (err) {
-      console.error('Failed to export image', err);
-      if (wrapper) {
-        wrapper.style.position = 'absolute';
-        wrapper.style.left = '-9999px';
-        wrapper.style.top = '-9999px';
-        wrapper.style.opacity = '0';
-        wrapper.style.zIndex = '-1';
-        if (currentParent) {
-          currentParent.insertBefore(wrapper, nextSibling);
-        }
+      // ── 高清路径失败（Canvas OOM 等），降级回退 ──
+      console.warn('[Export] 高清导出失败，降级回退:', err);
+
+      try {
+        await new Promise(r => requestAnimationFrame(r));
+        await new Promise(r => setTimeout(r, 100));
+
+        const cloneNode = cloneWrapper?.querySelector(`#export-card-${id}`) as HTMLElement | null;
+        if (!cloneNode) throw new Error('clone node missing');
+
+        const { default: html2canvas } = await import('html2canvas');
+        const fallbackCanvas = await html2canvas(cloneNode, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#FAF9F6',
+          logging: false,
+        });
+        const fallbackDataUrl = fallbackCanvas.toDataURL('image/jpeg', 0.92);
+        const fallbackFilename = `时间胶囊-${Date.now()}.jpg`;
+
+        await performExport(fallbackDataUrl, fallbackFilename);
+        showToast('已以标准清晰度导出', 'info');
+      } catch {
+        showToast('导出失败，请重试', 'error');
       }
+
+    } finally {
+      // ── 销毁克隆节点，释放 ObjectURL ──
+      cloneWrapper?.remove();
+      if (originalUrl) URL.revokeObjectURL(originalUrl);
+      setExportingId(null);
     }
   };
 
@@ -238,6 +260,7 @@ export function ResultGallery({
             regenerateImage={regenerateImage}
             copyToClipboard={copyToClipboard}
             copiedId={copiedId}
+            exportingId={exportingId}
           />
         ))}
       </div>
