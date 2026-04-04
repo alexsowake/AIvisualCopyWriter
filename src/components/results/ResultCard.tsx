@@ -191,7 +191,7 @@ export function ResultCard({
                 background: 'var(--surface-2)',
               }}
             />
-            <p style={{ fontSize: '12px', color: 'var(--fg-subtle)' }}>正在解析压缩…</p>
+            <p style={{ fontSize: '12px', color: 'var(--fg-subtle)' }}>正在转换HEIC格式图片…</p>
           </div>
         )}
 

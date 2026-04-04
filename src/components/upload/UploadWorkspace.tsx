@@ -226,7 +226,7 @@ export function UploadWorkspace({
               marginBottom: '4px',
               transition: 'color 0.2s ease',
             }}>
-              点击此处选择文件
+              点击此处选择单个或多个文件
             </p>
             <p style={{ fontSize: '12px', color: 'var(--fg-subtle)' }}>
               或将图片拖拽至此
@@ -234,7 +234,7 @@ export function UploadWorkspace({
           </div>
 
           <p style={{ fontSize: '11px', color: 'var(--fg-subtle)', letterSpacing: '0.04em' }}>
-            PNG · JPG · WEBP · HEIC，最高 5MB/张
+            PNG · JPG · WEBP · HEIC，最高 5MB/张，最多6张
           </p>
 
           <input
