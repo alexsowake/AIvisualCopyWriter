@@ -25,10 +25,13 @@ export type CopyMode = 'ai-original' | 'quote-style';
 // 辅助函数：反向地理编码（前端执行）
 async function reverseGeocodeUI(lat: number, lon: number): Promise<string | null> {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3_000);
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&accept-language=zh`,
-      { headers: { 'User-Agent': 'VisualCopywriter-UI/1.0' } }
+      { headers: { 'User-Agent': 'VisualCopywriter-UI/1.0' }, signal: controller.signal }
     );
+    clearTimeout(timeout);
     if (!res.ok) return null;
     const data = await res.json();
     const addr = data.address;
@@ -169,7 +172,17 @@ export function useImageProcessor() {
             const lat = exifData.latitude ?? exifData.GPSLatitude;
             const lon = exifData.longitude ?? exifData.GPSLongitude;
             if (typeof lat === 'number' && typeof lon === 'number') {
-              location = await reverseGeocodeUI(lat, lon);
+              // 非阻塞：地理编码异步执行，结果后续回填，不阻塞图片处理
+              const capturedId = id;
+              reverseGeocodeUI(lat, lon).then(loc => {
+                if (loc) {
+                  setImages(prev => prev.map(img =>
+                    img.id === capturedId
+                      ? { ...img, metadata: { date: img.metadata?.date ?? null, location: loc } }
+                      : img
+                  ));
+                }
+              });
             }
           }
         } catch (exifErr) {
@@ -181,23 +194,47 @@ export function useImageProcessor() {
         const isHeic = file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
 
         if (isHeic) {
+          // 策略 1：浏览器原生解码（Safari/Chrome 120+/Android 14+）
+          let converted = false;
           try {
-            const formData = new FormData();
-            formData.append('file', file);
-            const res = await fetch('/api/convert-heic', {
-              method: 'POST',
-              body: formData
+            const bitmap = await createImageBitmap(file);
+            const canvas = document.createElement('canvas');
+            canvas.width = bitmap.width;
+            canvas.height = bitmap.height;
+            const ctx = canvas.getContext('2d')!;
+            ctx.drawImage(bitmap, 0, 0);
+            bitmap.close();
+            const jpegBlob = await new Promise<Blob>((resolve, reject) => {
+              canvas.toBlob(
+                blob => blob ? resolve(blob) : reject(new Error('toBlob failed')),
+                'image/jpeg', 0.85
+              );
             });
+            processFile = new File([jpegBlob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+            converted = true;
+          } catch {
+            console.warn('[HEIC] createImageBitmap 不支持，回退服务端');
+          }
 
-            if (!res.ok) {
-              throw new Error(`服务器转换 HEIC 失败`);
+          // 策略 2：服务端 heic-convert（15s 超时）
+          if (!converted) {
+            const heicController = new AbortController();
+            const heicTimeout = setTimeout(() => heicController.abort(), 15_000);
+            try {
+              const formData = new FormData();
+              formData.append('file', file);
+              const res = await fetch('/api/convert-heic', {
+                method: 'POST', body: formData, signal: heicController.signal
+              });
+              clearTimeout(heicTimeout);
+              if (!res.ok) throw new Error('服务器转换失败');
+              const blob = await res.blob();
+              processFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+            } catch (err: unknown) {
+              clearTimeout(heicTimeout);
+              console.error('[HEIC] 所有转换方式均失败:', err);
+              throw new Error('HEIC 转换失败，请转为 JPG 后上传');
             }
-
-            const blob = await res.blob();
-            processFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
-          } catch (err: unknown) {
-            console.error("服务端转换HEIC失败: ", err);
-            throw new Error("HEIC 图片格式暂不支持或转换失败，请尝试其他格式");
           }
         }
 
@@ -215,10 +252,11 @@ export function useImageProcessor() {
         const previewUrl = URL.createObjectURL(compressedFile);
 
         setImages(prev => prev.map(img =>
-          img.id === id ? { 
-            ...img, 
-            file: compressedFile, 
-            previewUrl, 
+          img.id === id ? {
+            ...img,
+            file: compressedFile,
+            originalFile: processFile,
+            previewUrl,
             status: 'idle',
             metadata: { date, location }
           } : img
@@ -235,8 +273,13 @@ export function useImageProcessor() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
-      addFiles(newFiles);
+      addFiles(newFiles).catch(err => {
+        console.error('addFiles failed:', err);
+        showToast('图片处理出错，请重试', 'error');
+      });
     }
+    // 重置 input，允许重复选择相同文件（移动端常见需求）
+    e.target.value = '';
   };
 
   const handleDrop = (e: React.DragEvent<HTMLElement>) => {
@@ -372,7 +415,10 @@ export function useImageProcessor() {
   };
 
   const processImages = async () => {
-    const pendingImages = images.filter(img => img.status === 'idle' || img.status === 'success' || img.status === 'error');
+    const pendingImages = images.filter(img =>
+      img.status === 'idle' || img.status === 'success' ||
+      (img.status === 'error' && img.previewUrl)
+    );
     if (pendingImages.length === 0) return;
 
     setIsGlobalGenerating(true);
@@ -449,6 +495,10 @@ export function useImageProcessor() {
   const regenerateImage = async (id: string) => {
     const imgToRegen = images.find(img => img.id === id);
     if (!imgToRegen) return;
+    if (!imgToRegen.previewUrl) {
+      showToast('该图片处理失败，请删除后重新上传', 'error');
+      return;
+    }
 
     const modelDisplayName = modelProvider === 'kimi' ? 'Kimi' : (modelProvider === 'qwen' ? '通义千问' : 'Gemini');
 

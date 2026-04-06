@@ -59,8 +59,13 @@ export function ResultGallery({
     if (isMobile) {
       let nativeShareSuccess = false;
       try {
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
+        // 用 atob() 同步转换，避免 fetch(data:...) 在部分移动浏览器中被拦截
+        const arr = dataUrl.split(',');
+        const mime = (arr[0].match(/:(.*?);/) ?? [])[1] ?? 'image/jpeg';
+        const bstr = atob(arr[1]);
+        const u8arr = new Uint8Array(bstr.length);
+        for (let n = 0; n < bstr.length; n++) u8arr[n] = bstr.charCodeAt(n);
+        const blob = new Blob([u8arr], { type: mime });
         const file = new File([blob], filename, { type: 'image/jpeg' });
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
