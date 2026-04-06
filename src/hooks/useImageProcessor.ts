@@ -161,7 +161,7 @@ export function useImageProcessor() {
       try {
         // 1. 提取元数据 (前端提取)
         let date: string | null = null;
-        let location: string | null = null;
+        const location: string | null = null;
         try {
           const exifData = await exifr.parse(file, {
             pick: ['DateTimeOriginal', 'CreateDate', 'ModifyDate', 'GPSLatitude', 'GPSLongitude', 'latitude', 'longitude', 'Orientation', 'Make', 'Model'],
