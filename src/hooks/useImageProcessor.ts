@@ -224,10 +224,23 @@ export function useImageProcessor() {
             processFile = new File([jpegBlob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
             converted = true;
           } catch {
-            console.warn('[HEIC] createImageBitmap 不支持，回退服务端');
+            console.warn('[HEIC] createImageBitmap 不支持，尝试客户端 heic2any');
           }
 
-          // 策略 2：服务端 heic-convert（15s 超时）
+          // 策略 1.5：客户端 heic2any（浏览器 WASM 解码，不依赖服务端）
+          if (!converted) {
+            try {
+              const heic2any = (await import('heic2any')).default;
+              const result = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+              const jpegBlob = Array.isArray(result) ? result[0] : result;
+              processFile = new File([jpegBlob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+              converted = true;
+            } catch (e) {
+              console.warn('[HEIC] heic2any 客户端转换失败，回退服务端:', e);
+            }
+          }
+
+          // 策略 2：服务端 heic-convert（15s 超时，最终兜底）
           if (!converted) {
             const heicController = new AbortController();
             const heicTimeout = setTimeout(() => heicController.abort(), 15_000);

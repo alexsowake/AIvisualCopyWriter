@@ -255,7 +255,7 @@ export function ResultCard({
               }}
             />
             <p style={{ fontSize: '12px', color: 'var(--fg-subtle)', marginBottom: '8px', textAlign: 'center' }}>
-              已手动停止
+              {img.error || '出现错误'}
             </p>
             <button
               onClick={() => regenerateImage(img.id)}
