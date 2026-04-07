@@ -195,9 +195,20 @@ export function useImageProcessor() {
 
         if (isHeic) {
           // 策略 1：浏览器原生解码（Safari/Chrome 120+/Android 14+）
+          // 注意：Android 上 createImageBitmap(heic) 不会 throw，而是无限期挂起，需加超时
           let converted = false;
           try {
-            const bitmap = await createImageBitmap(file);
+            const bitmap = await Promise.race([
+              createImageBitmap(file),
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('createImageBitmap timeout')), 5_000)
+              ),
+            ]);
+            // 防御：某些 Android 返回 0×0 bitmap（静默失败）
+            if (bitmap.width === 0 || bitmap.height === 0) {
+              bitmap.close();
+              throw new Error('createImageBitmap returned empty bitmap');
+            }
             const canvas = document.createElement('canvas');
             canvas.width = bitmap.width;
             canvas.height = bitmap.height;

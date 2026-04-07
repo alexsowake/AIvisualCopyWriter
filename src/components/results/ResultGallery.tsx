@@ -82,7 +82,18 @@ export function ResultGallery({
       }
 
       if (!nativeShareSuccess) {
-        setExportModalImage(dataUrl);
+        // 微信 WebView 不允许长按保存 data URL 图片，需转成 blob URL
+        const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+        if (isWeChat) {
+          const arr = dataUrl.split(',');
+          const mime = (arr[0].match(/:(.*?);/) ?? [])[1] ?? 'image/jpeg';
+          const bstr = atob(arr[1]);
+          const u8arr = new Uint8Array(bstr.length);
+          for (let n = 0; n < bstr.length; n++) u8arr[n] = bstr.charCodeAt(n);
+          setExportModalImage(URL.createObjectURL(new Blob([u8arr], { type: mime })));
+        } else {
+          setExportModalImage(dataUrl);
+        }
       }
       return;
     }
@@ -286,8 +297,11 @@ export function ResultGallery({
 
       {/* ── Fallback Image Modal for Long-Press Save ── */}
       {exportModalImage && (
-        <div 
-          onClick={() => setExportModalImage(null)}
+        <div
+          onClick={() => {
+            if (exportModalImage.startsWith('blob:')) URL.revokeObjectURL(exportModalImage);
+            setExportModalImage(null);
+          }}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(15, 13, 11, 0.95)',
             backdropFilter: 'blur(10px)', zIndex: 99999, display: 'flex',
@@ -296,8 +310,8 @@ export function ResultGallery({
           }}
         >
           <div style={{ position: 'relative', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center' }}>
-            <button 
-               onClick={(e) => { e.stopPropagation(); setExportModalImage(null); }}
+            <button
+               onClick={(e) => { e.stopPropagation(); if (exportModalImage.startsWith('blob:')) URL.revokeObjectURL(exportModalImage); setExportModalImage(null); }}
                style={{ position: 'absolute', top: '-44px', right: '0', background: 'none', border: 'none', color: 'white', opacity: 0.6, cursor: 'pointer', padding: '5px' }}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
