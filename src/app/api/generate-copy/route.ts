@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { SYSTEM_PROMPT, QUOTE_SYSTEM_PROMPT } from '@/config/systemPrompt';
 
+export const maxDuration = 60;
+
 export async function GET() {
     return NextResponse.json({ modelName: 'Gemini 3 Flash' });
 }

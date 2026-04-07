@@ -227,32 +227,6 @@ export function useImageProcessor() {
             console.warn('[HEIC] createImageBitmap 不支持，尝试客户端 heic-decode');
           }
 
-          // 策略 1.5：客户端 heic-decode（libheif WASM 解码，主线程运行，不依赖 Worker 和服务端）
-          if (!converted) {
-            try {
-              const heicDecode = (await import('heic-decode')).default;
-              const { width, height, data } = await heicDecode({
-                buffer: await file.arrayBuffer(),
-              });
-              const canvas = document.createElement('canvas');
-              canvas.width = width;
-              canvas.height = height;
-              const ctx = canvas.getContext('2d')!;
-              const imageData = new ImageData(new Uint8ClampedArray(data), width, height);
-              ctx.putImageData(imageData, 0, 0);
-              const jpegBlob = await new Promise<Blob>((resolve, reject) => {
-                canvas.toBlob(
-                  blob => blob ? resolve(blob) : reject(new Error('toBlob failed')),
-                  'image/jpeg', 0.85
-                );
-              });
-              processFile = new File([jpegBlob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
-              converted = true;
-            } catch (e) {
-              console.warn('[HEIC] heic-decode 客户端转换失败，回退服务端:', e);
-            }
-          }
-
           // 策略 2：服务端 heic-convert（15s 超时，最终兜底）
           if (!converted) {
             const heicController = new AbortController();
