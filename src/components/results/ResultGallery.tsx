@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { ImageItem, CopyMode, ModelProvider } from '../../hooks/useImageProcessor';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResultCard } from './ResultCard';
-// html2canvas 改为动态导入，避免拖慢首次编译（1.8MB）
+import html2canvas from 'html2canvas';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 interface ResultGalleryProps {
@@ -158,7 +158,6 @@ export function ResultGallery({
       await new Promise(resolve => requestAnimationFrame(resolve));
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(cloneNode, {
         scale: 3,
         useCORS: true,
@@ -181,7 +180,6 @@ export function ResultGallery({
         const cloneNode = cloneWrapper?.querySelector(`#export-card-${id}`) as HTMLElement | null;
         if (!cloneNode) throw new Error('clone node missing');
 
-        const { default: html2canvas } = await import('html2canvas');
         const fallbackCanvas = await html2canvas(cloneNode, {
           scale: 2,
           useCORS: true,
