@@ -224,7 +224,24 @@ export function useImageProcessor() {
             processFile = new File([jpegBlob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
             converted = true;
           } catch {
-            console.warn('[HEIC] createImageBitmap 不支持，尝试客户端 heic-decode');
+            console.warn('[HEIC] createImageBitmap 不支持，尝试客户端 heic2any');
+          }
+
+          // 策略 1.5：客户端 heic2any 转换（解决 Android 和 PC 无原生支持问题）
+          if (!converted) {
+            try {
+              const heic2any = (await import('heic2any')).default;
+              const convertedResult = await heic2any({
+                blob: file,
+                toType: 'image/jpeg',
+                quality: 0.8
+              });
+              const jpegBlob = Array.isArray(convertedResult) ? convertedResult[0] : convertedResult;
+              processFile = new File([jpegBlob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+              converted = true;
+            } catch (e) {
+              console.warn('[HEIC] heic2any 客户端转换失败:', e);
+            }
           }
 
           // 策略 2：服务端 heic-convert（15s 超时，最终兜底）
@@ -238,13 +255,16 @@ export function useImageProcessor() {
                 method: 'POST', body: formData, signal: heicController.signal
               });
               clearTimeout(heicTimeout);
-              if (!res.ok) throw new Error('服务器转换失败');
+              if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(`服务端转换崩溃: ${errData.error || res.status}`);
+              }
               const blob = await res.blob();
               processFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
             } catch (err: unknown) {
               clearTimeout(heicTimeout);
               console.error('[HEIC] 所有转换方式均失败:', err);
-              throw new Error('HEIC 转换失败，请转为 JPG 后上传');
+              throw new Error(err instanceof Error ? err.message : 'HEIC 转换失败');
             }
           }
         }
