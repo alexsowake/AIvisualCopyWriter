@@ -17,17 +17,15 @@ export function ExportCardTemplate({ id, previewUrl, result, copyMode }: ExportC
         id={`export-card-${id}`}
         className="flex flex-col bg-white p-6 shadow-sm w-[400px] box-border"
       >
-        <div className="w-full mb-6 pb-2 relative">
-          {/* 使用原生 img 而非 Next.js Image，因为 html2canvas 导出时 wrapper 会被移至 document.body，
-              脱离 React 组件树后 Next.js Image 无法正常渲染 */}
+        {/* 使用原生 img 而非 Next.js Image，因为 html2canvas 导出时 wrapper 会被移至 document.body，
+            脱离 React 组件树后 Next.js Image 无法正常渲染 */}
+        {/* paddingTop: '75%' = 4:3 宽高比，原图居中裁剪，避免竖向或横向被拉伸 */}
+        <div className="w-full mb-6" style={{ position: 'relative', paddingTop: '75%', overflow: 'hidden', borderRadius: '8px' }}>
           <img
             src={previewUrl}
             alt="export"
-            width={352}
-            height={352}
             loading="eager"
-            className="w-full h-auto rounded-lg drop-shadow-sm"
-            style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'block' }}
           />
         </div>
         {copyMode === 'quote-style' ? (

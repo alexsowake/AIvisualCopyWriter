@@ -76,7 +76,12 @@ export function ResultGallery({
           nativeShareSuccess = true;
         }
       } catch (shareErr) {
-        console.warn('[Export] Web Share API failed/aborted, falling back to modal', shareErr);
+        if (shareErr instanceof Error && shareErr.name === 'AbortError') {
+          // 用户主动关闭了系统分享面板，不需要降级 modal
+          nativeShareSuccess = true;
+        } else {
+          console.warn('[Export] Web Share API failed, falling back to modal', shareErr);
+        }
       } finally {
         setTimeout(() => setExportGuidance(null), 1000);
       }
@@ -152,6 +157,41 @@ export function ResultGallery({
           };
         });
 
+        await cloneImgEl.decode().catch(() => {});
+      }
+
+      // ── 自适应预裁剪（上限模式）──
+      // 横屏：最宽不超过 4:3（比 4:3 更宽才裁切两侧，否则保持原比例）
+      // 竖屏：最高不超过 3:4（比 3:4 更高才裁切上下，否则保持原比例；图片区域≤3:4 保证总卡片比例≥9:16）
+      if (cloneImgEl && cloneImgEl.naturalWidth > 0 && cloneImgEl.naturalHeight > 0) {
+        const nw = cloneImgEl.naturalWidth;
+        const nh = cloneImgEl.naturalHeight;
+        const isPortrait = nh > nw;
+        const naturalRatio = nw / nh;
+        const targetRatio = isPortrait
+          ? Math.max(naturalRatio, 3 / 4)    // 竖屏：比 3:4 更高才裁；否则用原比例
+          : Math.min(naturalRatio, 4 / 3);   // 横屏：比 4:3 更宽才裁；否则用原比例
+
+        // 同步更新克隆节点图片容器的 padding-top，与实际裁剪比例一致
+        if (cloneImgEl.parentElement) {
+          cloneImgEl.parentElement.style.paddingTop = `${(100 / targetRatio).toFixed(2)}%`;
+        }
+
+        let sx = 0, sy = 0, sw = nw, sh = nh;
+        if (nw / nh > targetRatio) {
+          // 图片过宽：裁两侧，居中取中间
+          sw = Math.round(nh * targetRatio);
+          sx = Math.round((nw - sw) / 2);
+        } else if (nw / nh < targetRatio) {
+          // 图片过高：裁上下，居中取中间
+          sh = Math.round(nw / targetRatio);
+          sy = Math.round((nh - sh) / 2);
+        }
+        const cropCanvas = document.createElement('canvas');
+        cropCanvas.width = sw;
+        cropCanvas.height = sh;
+        cropCanvas.getContext('2d')!.drawImage(cloneImgEl, sx, sy, sw, sh, 0, 0, sw, sh);
+        cloneImgEl.src = cropCanvas.toDataURL('image/jpeg', 1.0);
         await cloneImgEl.decode().catch(() => {});
       }
 
