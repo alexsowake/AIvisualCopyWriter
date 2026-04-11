@@ -319,11 +319,11 @@ function MultiGenCard({
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', paddingTop: '10px' }}>
-               <ActionButton icon={isExporting ? <Loader2 className="animate-spin" size={11} /> : <Download size={11} />} label={isExporting ? '导出中' : '导出'} onClick={onExport} primary />
-               <ActionButton icon={<RefreshCw size={11} />} label="换一条" onClick={onRegenerate} />
-               <ActionButton icon={isCopied ? <Check size={11} /> : <Copy size={11} />} label={isCopied ? '已复制' : '复制'} onClick={onCopy} success={isCopied} />
-            </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 justify-end pt-3">
+                     <ActionButton icon={isExporting ? <Loader2 className="animate-spin" size={11} /> : <Download size={11} />} label={isExporting ? '导出中' : '导出'} onClick={onExport} primary />
+                     <ActionButton icon={<RefreshCw size={11} />} label="换一条" onClick={onRegenerate} />
+                     <ActionButton icon={isCopied ? <Check size={11} /> : <Copy size={11} />} label={isCopied ? '已复制' : '复制'} onClick={onCopy} success={isCopied} />
+                  </div>
           </>
         )}
       </div>
@@ -345,14 +345,16 @@ function ActionButton({ icon, label, onClick, primary, success }: { icon: React.
         gap: '4px',
         fontSize: '11px',
         fontFamily: "'DM Sans', sans-serif",
-        padding: '2px 0',
+        padding: '12px 4px',
+        minHeight: '44px',
         background: 'none',
         border: 'none',
-        borderBottom: '1px solid',
+        borderBottom: '1.5px solid',
         cursor: 'pointer',
         color: success ? '#3c8c50' : (primary ? 'var(--fg)' : 'var(--fg-muted)'),
         borderBottomColor: success ? '#3c8c50' : (primary ? 'var(--fg)' : 'var(--border)'),
-        transition: 'all 0.18s ease'
+        transition: 'all 0.18s ease',
+        touchAction: 'manipulation',
       }}
     >
       {icon}

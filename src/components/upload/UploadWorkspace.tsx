@@ -73,7 +73,7 @@ export function UploadWorkspace({
         {/* App Mode Switcher */}
         <div style={{ marginBottom: '2rem' }}>
           <span style={FIELD_LABEL_STYLE}>创作模式</span>
-          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             {(['classic', 'multi-gen'] as const).map(mode => (
               <button
                 key={mode}
@@ -81,19 +81,21 @@ export function UploadWorkspace({
                 disabled={isGlobalGenerating}
                 onClick={() => setAppMode(mode)}
                 style={{
-                  padding: '8px 0 8px 0',
+                  padding: '12px 14px',
+                  minHeight: '44px',
                   fontSize: '14px',
                   fontWeight: appMode === mode ? 500 : 400,
                   color: appMode === mode ? 'var(--fg)' : 'var(--fg-subtle)',
-                  background: 'none',
+                  background: appMode === mode ? 'rgba(35, 26, 17, 0.04)' : 'none',
                   border: 'none',
                   borderBottom: appMode === mode
-                    ? '1.5px solid var(--fg)'
-                    : '1.5px solid transparent',
+                    ? '2px solid var(--fg)'
+                    : '2px solid transparent',
                   cursor: isGlobalGenerating ? 'not-allowed' : 'pointer',
                   transition: 'all 0.18s ease',
                   fontFamily: "'DM Sans', sans-serif",
                   opacity: isGlobalGenerating ? 0.5 : 1,
+                  touchAction: 'manipulation',
                 }}
               >
                 {mode === 'classic' ? '经典模式' : '一图生多文'}
@@ -111,25 +113,27 @@ export function UploadWorkspace({
         {appMode === 'classic' && (
           <div style={{ marginBottom: '2rem' }}>
             <span style={FIELD_LABEL_STYLE}>文案模式</span>
-            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               {(['ai-original', 'quote-style'] as CopyMode[]).map(mode => (
                 <button
                   key={mode}
                   type="button"
                   onClick={() => setCopyMode(mode)}
                   style={{
-                    padding: '8px 0 8px 0',
+                    padding: '12px 14px',
+                    minHeight: '44px',
                     fontSize: '14px',
                     fontWeight: copyMode === mode ? 500 : 400,
                     color: copyMode === mode ? 'var(--fg)' : 'var(--fg-subtle)',
-                    background: 'none',
+                    background: copyMode === mode ? 'rgba(35, 26, 17, 0.04)' : 'none',
                     border: 'none',
                     borderBottom: copyMode === mode
-                      ? '1.5px solid var(--fg)'
-                      : '1.5px solid transparent',
+                      ? '2px solid var(--fg)'
+                      : '2px solid transparent',
                     cursor: 'pointer',
                     transition: 'all 0.18s ease',
                     fontFamily: "'DM Sans', sans-serif",
+                    touchAction: 'manipulation',
                   }}
                 >
                   {mode === 'ai-original' ? 'AI 原创旁白' : '经典引文匹配'}
@@ -203,6 +207,7 @@ export function UploadWorkspace({
             cursor: isGlobalGenerating || imagesCount === 0 ? 'not-allowed' : 'pointer',
             transition: 'opacity 0.2s ease',
             opacity: isGlobalGenerating || imagesCount === 0 ? 0.55 : 1,
+            touchAction: 'manipulation',
           }}
           onMouseEnter={e => { if (!isGlobalGenerating && imagesCount > 0) e.currentTarget.style.opacity = '0.85'; }}
           onMouseLeave={e => { e.currentTarget.style.opacity = isGlobalGenerating || imagesCount === 0 ? '0.55' : '1'; }}
@@ -244,8 +249,18 @@ export function UploadWorkspace({
             padding: '2.5rem',
             gap: '1rem',
             transform: isDragging ? 'scale(1.01)' : 'scale(1)',
+            touchAction: 'manipulation',
           }}
         >
+          <div 
+            style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              gap: '1rem',
+              pointerEvents: 'none' 
+            }}
+          >
           {/* Upload icon — a simple aperture-like circle mark */}
           <svg
             width="36" height="36"
@@ -281,6 +296,7 @@ export function UploadWorkspace({
           <p style={{ fontSize: '11px', color: 'var(--fg-subtle)', letterSpacing: '0.04em' }}>
             PNG · JPG · WEBP · HEIC，最高 5MB/张，{appMode === 'multi-gen' ? '限1张' : '最多6张'}
           </p>
+          </div>
 
           <input
             id="file-upload"
