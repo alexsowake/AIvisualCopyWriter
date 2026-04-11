@@ -5,6 +5,7 @@ import { useImageProcessor } from '../hooks/useImageProcessor';
 import { HeroSection } from '../components/landing/HeroSection';
 import { UploadWorkspace } from '../components/upload/UploadWorkspace';
 import { ResultGallery } from '../components/results/ResultGallery';
+import { MultiGenGallery } from '../components/results/MultiGenGallery';
 import { Header } from '../components/common/Header';
 import { Footer } from '../components/common/Footer';
 import { MobileActionBar } from '../components/upload/MobileActionBar';
@@ -34,6 +35,14 @@ export default function VisualCopywriter() {
     stopGeneration,
     processImages,
     regenerateImage,
+    appMode,
+    setAppMode,
+    multiGenResults,
+    setMultiGenResults,
+    processMultiGen,
+    regenerateMultiGenItem,
+    stopMultiGenItem,
+    clearMultiGenResults,
     toast,
     showToast,
     MAX_IMAGES
@@ -71,9 +80,11 @@ export default function VisualCopywriter() {
           <UploadWorkspace
             copyMode={copyMode}
             setCopyMode={setCopyMode}
-            stylePrompt={stylePrompt}
+            appMode={appMode}
+            setAppMode={setAppMode}
+            stylePrompt={appMode === 'classic' ? stylePrompt : ''}
             setStylePrompt={setStylePrompt}
-            processImages={processImages}
+            processImages={appMode === 'multi-gen' ? processMultiGen : processImages}
             isGlobalGenerating={isGlobalGenerating}
             imagesCount={images.length}
             handleFileSelect={handleFileSelect}
@@ -84,19 +95,33 @@ export default function VisualCopywriter() {
           />
 
           <div id="results-section">
-            <ResultGallery
-              images={images}
-              removeImage={removeImage}
-              stopGeneration={stopGeneration}
-              copyMode={copyMode}
-              modelProvider={modelProvider}
-              regenerateImage={regenerateImage}
-              setPreviewImage={setPreviewImage}
-              clearAllImages={clearAllImages}
-              MAX_IMAGES={MAX_IMAGES}
-              toast={toast}
-              showToast={showToast}
-            />
+            {appMode === 'classic' ? (
+              <ResultGallery
+                images={images}
+                removeImage={removeImage}
+                stopGeneration={stopGeneration}
+                copyMode={copyMode}
+                modelProvider={modelProvider}
+                regenerateImage={regenerateImage}
+                setPreviewImage={setPreviewImage}
+                clearAllImages={clearAllImages}
+                MAX_IMAGES={MAX_IMAGES}
+                toast={toast}
+                showToast={showToast}
+              />
+            ) : (
+              <MultiGenGallery
+                sourceImage={images[0] ?? null}
+                results={multiGenResults}
+                modelProvider={modelProvider}
+                regenerateItem={regenerateMultiGenItem}
+                stopItem={stopMultiGenItem}
+                clearAll={clearMultiGenResults}
+                setPreviewImage={setPreviewImage}
+                toast={toast}
+                showToast={showToast}
+              />
+            )}
           </div>
         </div>
       </main>
@@ -109,7 +134,8 @@ export default function VisualCopywriter() {
         <MobileActionBar 
           imagesCount={images.length}
           isGlobalGenerating={isGlobalGenerating}
-          processImages={processImages}
+          processImages={appMode === 'multi-gen' ? processMultiGen : processImages}
+          appMode={appMode}
         />
       </div>
 

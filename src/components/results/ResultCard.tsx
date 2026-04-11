@@ -18,6 +18,7 @@ interface ResultCardProps {
   copyToClipboard: (text: string, id: string) => void;
   copiedId: string | null;
   exportingId: string | null;
+  cardCopyMode?: CopyMode;   // 卡片级别覆盖，一图生多文场景使用
 }
 
 const MODEL_LABEL: Record<ModelProvider, string> = {
@@ -39,8 +40,10 @@ export function ResultCard({
   copyToClipboard,
   copiedId,
   exportingId,
+  cardCopyMode,
 }: ResultCardProps) {
   const isExporting = exportingId === img.id;
+  const effectiveCopyMode = cardCopyMode ?? copyMode;
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -170,7 +173,7 @@ export function ResultCard({
               fontFamily: "'DM Sans', sans-serif",
             }}>
               <span style={{ fontSize: '9px', opacity: 0.8 }}>✦</span>
-              {MODEL_LABEL[modelProvider].split(' ')[0]} {copyMode === 'ai-original' ? '瞎编' : '搬运'}
+              {MODEL_LABEL[modelProvider].split(' ')[0]} {effectiveCopyMode === 'ai-original' ? '瞎编' : '搬运'}
             </span>
           )}
           {/* No tag for error state to keep it clean */}
@@ -293,7 +296,7 @@ export function ResultCard({
               overflowY: 'auto',
               maxHeight: '9rem',
             }}>
-              {copyMode === 'quote-style' ? (
+              {effectiveCopyMode === 'quote-style' ? (
                 <>
                   <div style={{
                     fontSize: '13.5px',
@@ -407,7 +410,7 @@ export function ResultCard({
 
       {/* Export template — must live outside overflow:hidden containers for html2canvas */}
       {img.status === 'success' && img.result && (
-        <ExportCardTemplate id={img.id} previewUrl={img.previewUrl} result={img.result} copyMode={copyMode} />
+        <ExportCardTemplate id={img.id} previewUrl={img.previewUrl} result={img.result} copyMode={effectiveCopyMode} />
       )}
     </motion.div>
   );

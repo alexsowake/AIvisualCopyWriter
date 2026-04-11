@@ -21,6 +21,16 @@ export interface ImageItem {
 
 export type ModelProvider = 'gemini' | 'gemini-flash' | 'qwen' | 'kimi';
 export type CopyMode = 'ai-original' | 'quote-style';
+export type AppMode = 'classic' | 'multi-gen';
+
+export interface MultiGenResult {
+  id: string;
+  copyMode: CopyMode;                                // 标识是 'ai-original' 还是 'quote-style'
+  status: 'loading' | 'success' | 'error';
+  statusMessage?: string;
+  result?: string;
+  error?: string;
+}
 
 // 辅助函数：反向地理编码（前端执行）
 async function reverseGeocodeUI(lat: number, lon: number): Promise<string | null> {
@@ -79,6 +89,8 @@ export function useImageProcessor() {
   const [stylePrompt, setStylePrompt] = useState<string>('');
   const [modelProvider, setModelProvider] = useState<ModelProvider>('gemini');
   const [copyMode, setCopyMode] = useState<CopyMode>('quote-style');
+  const [appMode, setAppMode] = useState<AppMode>('classic');
+  const [multiGenResults, setMultiGenResults] = useState<MultiGenResult[]>([]);
   const [isGlobalGenerating, setIsGlobalGenerating] = useState<boolean>(false);
   const [modelName, setModelName] = useState<string>('AI');
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'error' | 'success' } | null>(null);
@@ -132,16 +144,27 @@ export function useImageProcessor() {
   const addFiles = async (newFiles: File[]) => {
     let filesToProcess = newFiles;
     const currentCount = images.length;
+    const maxImages = appMode === 'multi-gen' ? 1 : MAX_IMAGES;
 
-    // Enforce 6 image limit
-    if (currentCount + newFiles.length > MAX_IMAGES) {
-      const remainingSlots = Math.max(0, MAX_IMAGES - currentCount);
+    // Enforce image limit
+    if (currentCount + newFiles.length > maxImages) {
+      const remainingSlots = Math.max(0, maxImages - currentCount);
       if (remainingSlots === 0) {
-        showToast(`已达到最大限制（${MAX_IMAGES} 张），无法上传更多`, 'error');
+        showToast(
+          appMode === 'multi-gen'
+            ? '一图生多文模式仅支持 1 张图片'
+            : `已达到最大限制（${MAX_IMAGES} 张），无法上传更多`,
+          'error'
+        );
         return;
       }
       filesToProcess = newFiles.slice(0, remainingSlots);
-      showToast(`一次最多处理 ${MAX_IMAGES} 张图片，已为您选取前 ${remainingSlots} 张`, 'info');
+      showToast(
+        appMode === 'multi-gen'
+          ? '一图生多文模式仅支持 1 张图片，已为您选取第 1 张'
+          : `一次最多处理 ${MAX_IMAGES} 张图片，已为您选取前 ${remainingSlots} 张`,
+        'info'
+      );
     }
 
     // 处理开始前进行一次滚动，让用户看到占位符
@@ -371,7 +394,7 @@ export function useImageProcessor() {
     }
   };
 
-  const callGeminiAPI = async (img: ImageItem, prompt: string, provider: ModelProvider, signal: AbortSignal): Promise<string> => {
+  const callGeminiAPI = async (img: ImageItem, prompt: string, provider: ModelProvider, signal: AbortSignal, overrideCopyMode?: CopyMode): Promise<string> => {
     try {
       const formData = new FormData();
       formData.append('image', img.file);
@@ -379,7 +402,7 @@ export function useImageProcessor() {
       if (img.metadata?.location) formData.append('metadataLocation', img.metadata.location);
       formData.append('prompt', prompt);
       formData.append('modelProvider', provider);
-      formData.append('copyMode', copyMode);
+      formData.append('copyMode', overrideCopyMode ?? copyMode);
 
       const response = await fetch('/api/generate-copy', {
         method: 'POST',
@@ -590,6 +613,180 @@ export function useImageProcessor() {
     await attemptRegen();
   };
 
+  const processMultiGen = async () => {
+    // 只用第一张已就绪的图片
+    const sourceImage = images.find(img =>
+      img.status === 'idle' || img.status === 'success' ||
+      (img.status === 'error' && img.previewUrl)
+    );
+    if (!sourceImage) return;
+
+    setIsGlobalGenerating(true);
+
+    // 构建 6 个生成任务的描述
+    const tasks: { id: string; copyMode: CopyMode }[] = [
+      ...Array.from({ length: 3 }, (_, i) => ({
+        id: `mg-orig-${i}-${Date.now()}`,
+        copyMode: 'ai-original' as CopyMode,
+      })),
+      ...Array.from({ length: 3 }, (_, i) => ({
+        id: `mg-quote-${i}-${Date.now()}`,
+        copyMode: 'quote-style' as CopyMode,
+      })),
+    ];
+
+    // 初始化所有结果为 loading
+    setMultiGenResults(tasks.map(t => ({
+      id: t.id,
+      copyMode: t.copyMode,
+      status: 'loading',
+      statusMessage: `正在创作中…`,
+    })));
+
+    // 移动端检测：分批策略
+    const isMobile = typeof window !== 'undefined' &&
+      (window.innerWidth < 768 || /Mobile|Android/i.test(navigator.userAgent));
+
+    const executeBatch = async (batch: typeof tasks) => {
+      const promises = batch.map(async (task) => {
+        const controller = new AbortController();
+        activeRequests.current.set(task.id, controller);
+
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        const attempt = async (): Promise<void> => {
+          try {
+            const resultText = await callGeminiAPI(
+              sourceImage, '', modelProvider, controller.signal, task.copyMode
+            );
+            setMultiGenResults(prev => prev.map(r =>
+              r.id === task.id
+                ? { ...r, status: 'success', result: resultText, statusMessage: undefined }
+                : r
+            ));
+            activeRequests.current.delete(task.id);
+          } catch (error: unknown) {
+            if (error instanceof Error && error.name === 'AbortError') return;
+            const errorMessage = error instanceof Error ? error.message : '生成失败，请重试';
+            const isRetryable = errorMessage.includes('503') || errorMessage.includes('429');
+
+            if (isRetryable && retryCount < maxRetries) {
+              retryCount++;
+              setMultiGenResults(prev => prev.map(r =>
+                r.id === task.id
+                  ? { ...r, statusMessage: `服务繁忙，第 ${retryCount} 次重试…` }
+                  : r
+              ));
+              await new Promise(resolve => setTimeout(resolve, 1500 * Math.pow(2, retryCount - 1)));
+              return attempt();
+            }
+
+            setMultiGenResults(prev => prev.map(r =>
+              r.id === task.id
+                ? { ...r, status: 'error', statusMessage: undefined, error: errorMessage }
+                : r
+            ));
+            activeRequests.current.delete(task.id);
+          }
+        };
+
+        return attempt();
+      });
+      await Promise.allSettled(promises);
+    };
+
+    if (isMobile) {
+      // 移动端：分 2 批（每批 3 个），降低并发压力
+      await executeBatch(tasks.slice(0, 3));
+      await executeBatch(tasks.slice(3, 6));
+    } else {
+      // 桌面端：6 路并发
+      await executeBatch(tasks);
+    }
+
+    setIsGlobalGenerating(false);
+  };
+
+  const regenerateMultiGenItem = async (resultId: string) => {
+    const target = multiGenResults.find(r => r.id === resultId);
+    const sourceImage = images.find(img => img.previewUrl);
+    if (!target || !sourceImage) return;
+
+    setMultiGenResults(prev => prev.map(r =>
+      r.id === resultId
+        ? { ...r, status: 'loading', statusMessage: '正在重新创作…', error: undefined }
+        : r
+    ));
+
+    const controller = new AbortController();
+    activeRequests.current.set(resultId, controller);
+
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    const attempt = async (): Promise<void> => {
+      try {
+        const resultText = await callGeminiAPI(
+          sourceImage, '', modelProvider, controller.signal, target.copyMode
+        );
+        setMultiGenResults(prev => prev.map(r =>
+          r.id === resultId
+            ? { ...r, status: 'success', result: resultText, statusMessage: undefined }
+            : r
+        ));
+        activeRequests.current.delete(resultId);
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        const errorMessage = error instanceof Error ? error.message : '生成失败，请重试';
+        const isRetryable = errorMessage.includes('503') || errorMessage.includes('429');
+
+        if (isRetryable && retryCount < maxRetries) {
+          retryCount++;
+          setMultiGenResults(prev => prev.map(r =>
+            r.id === resultId
+              ? { ...r, statusMessage: `服务繁忙，第 ${retryCount} 次重试…` }
+              : r
+          ));
+          await new Promise(resolve => setTimeout(resolve, 1500 * Math.pow(2, retryCount - 1)));
+          return attempt();
+        }
+
+        setMultiGenResults(prev => prev.map(r =>
+          r.id === resultId
+            ? { ...r, status: 'error', statusMessage: undefined, error: errorMessage }
+            : r
+        ));
+        activeRequests.current.delete(resultId);
+      }
+    };
+
+    await attempt();
+  };
+
+  const stopMultiGenItem = (resultId: string) => {
+    if (activeRequests.current.has(resultId)) {
+      activeRequests.current.get(resultId)?.abort();
+      activeRequests.current.delete(resultId);
+      setMultiGenResults(prev => prev.map(r =>
+        r.id === resultId
+          ? { ...r, status: 'error', statusMessage: undefined, error: '已手动停止生成' }
+          : r
+      ));
+    }
+  };
+
+  const clearMultiGenResults = () => {
+    // 中断所有正在进行的 multi-gen 请求
+    multiGenResults.forEach(r => {
+      if (activeRequests.current.has(r.id)) {
+        activeRequests.current.get(r.id)?.abort();
+        activeRequests.current.delete(r.id);
+      }
+    });
+    setMultiGenResults([]);
+  };
+
   return {
     images,
     setImages,
@@ -597,20 +794,15 @@ export function useImageProcessor() {
     setStylePrompt,
     modelProvider,
     setModelProvider,
-    copyMode,
-    setCopyMode,
-    isGlobalGenerating,
-    modelName,
-    handleFileSelect,
-    handleDrop,
-    addFiles,
-    removeImage,
-    clearAllImages,
-    stopGeneration,
-    processImages,
-    regenerateImage,
-    toast,
-    showToast,
-    MAX_IMAGES
+    copyMode, setCopyMode,
+    appMode, setAppMode,
+    multiGenResults, setMultiGenResults,
+    isGlobalGenerating, modelName,
+    handleFileSelect, handleDrop, addFiles,
+    removeImage, clearAllImages,
+    stopGeneration, processImages, regenerateImage,
+    processMultiGen, regenerateMultiGenItem,
+    stopMultiGenItem, clearMultiGenResults,
+    toast, showToast, MAX_IMAGES
   };
 }

@@ -7,6 +7,8 @@ import { CopyMode } from '../../hooks/useImageProcessor';
 interface UploadWorkspaceProps {
   copyMode: CopyMode;
   setCopyMode: (mode: CopyMode) => void;
+  appMode: 'classic' | 'multi-gen';
+  setAppMode: (mode: 'classic' | 'multi-gen') => void;
   stylePrompt: string;
   setStylePrompt: (prompt: string) => void;
   processImages: () => Promise<void>;
@@ -44,6 +46,8 @@ const FIELD_LABEL_STYLE: React.CSSProperties = {
 export function UploadWorkspace({
   copyMode,
   setCopyMode,
+  appMode,
+  setAppMode,
   stylePrompt,
   setStylePrompt,
   processImages,
@@ -66,76 +70,117 @@ export function UploadWorkspace({
           生成参数
         </div>
 
-        {/* Copy Mode */}
+        {/* App Mode Switcher */}
         <div style={{ marginBottom: '2rem' }}>
-          <span style={FIELD_LABEL_STYLE}>文案模式</span>
+          <span style={FIELD_LABEL_STYLE}>创作模式</span>
           <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-            {(['ai-original', 'quote-style'] as CopyMode[]).map(mode => (
+            {(['classic', 'multi-gen'] as const).map(mode => (
               <button
                 key={mode}
                 type="button"
-                onClick={() => setCopyMode(mode)}
+                disabled={isGlobalGenerating}
+                onClick={() => setAppMode(mode)}
                 style={{
                   padding: '8px 0 8px 0',
                   fontSize: '14px',
-                  fontWeight: copyMode === mode ? 500 : 400,
-                  color: copyMode === mode ? 'var(--fg)' : 'var(--fg-subtle)',
+                  fontWeight: appMode === mode ? 500 : 400,
+                  color: appMode === mode ? 'var(--fg)' : 'var(--fg-subtle)',
                   background: 'none',
                   border: 'none',
-                  borderBottom: copyMode === mode
+                  borderBottom: appMode === mode
                     ? '1.5px solid var(--fg)'
                     : '1.5px solid transparent',
-                  cursor: 'pointer',
+                  cursor: isGlobalGenerating ? 'not-allowed' : 'pointer',
                   transition: 'all 0.18s ease',
                   fontFamily: "'DM Sans', sans-serif",
+                  opacity: isGlobalGenerating ? 0.5 : 1,
                 }}
               >
-                {mode === 'ai-original' ? 'AI 原创旁白' : '经典引文匹配'}
+                {mode === 'classic' ? '经典模式' : '一图生多文'}
               </button>
             ))}
           </div>
           <p style={{ marginTop: '10px', fontSize: '12px', color: 'var(--fg-subtle)', lineHeight: 1.6 }}>
-            {copyMode === 'ai-original'
-              ? 'AI 根据画面意境，原创一句极简旁白'
-              : '从文学、电影台词、歌词中匹配最契合的引文'}
+            {appMode === 'classic'
+              ? '上传多张图片，每张独立生成一条文案'
+              : '上传一张照片，同时生成 6 条不同风格的文案'}
           </p>
         </div>
 
-        {/* Style Prompt */}
-        <div style={{ marginBottom: '2rem' }}>
-          <label htmlFor="style-prompt" style={FIELD_LABEL_STYLE}>
-            {copyMode === 'ai-original' ? '风格补充' : '附加要求'}
-            <span style={{ color: 'var(--fg-subtle)', fontWeight: 300, marginLeft: '4px' }}>（可选）</span>
-          </label>
-          <textarea
-            id="style-prompt"
-            rows={3}
-            value={stylePrompt}
-            onChange={e => setStylePrompt(e.target.value)}
-            placeholder={
-              copyMode === 'ai-original'
-                ? '例如：更幽默一点、使用第二人称……不填则使用默认风格'
-                : '例如：偏好日本文学、只选电影台词……'
-            }
-            style={{
-              width: '100%',
-              padding: '10px 0',
-              fontSize: '13.5px',
-              fontFamily: "'DM Sans', sans-serif",
-              color: 'var(--fg)',
-              background: 'transparent',
-              border: 'none',
-              borderBottom: '1px solid var(--border-strong)',
-              borderRadius: 0,
-              resize: 'vertical',
-              outline: 'none',
-              lineHeight: 1.65,
-              transition: 'border-color 0.2s ease',
-            }}
-            onFocus={e => (e.target.style.borderBottomColor = 'var(--fg)')}
-            onBlur={e => (e.target.style.borderBottomColor = 'var(--border-strong)')}
-          />
-        </div>
+        {/* Copy Mode - Hidden in Multi-Gen */}
+        {appMode === 'classic' && (
+          <div style={{ marginBottom: '2rem' }}>
+            <span style={FIELD_LABEL_STYLE}>文案模式</span>
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+              {(['ai-original', 'quote-style'] as CopyMode[]).map(mode => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setCopyMode(mode)}
+                  style={{
+                    padding: '8px 0 8px 0',
+                    fontSize: '14px',
+                    fontWeight: copyMode === mode ? 500 : 400,
+                    color: copyMode === mode ? 'var(--fg)' : 'var(--fg-subtle)',
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: copyMode === mode
+                      ? '1.5px solid var(--fg)'
+                      : '1.5px solid transparent',
+                    cursor: 'pointer',
+                    transition: 'all 0.18s ease',
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}
+                >
+                  {mode === 'ai-original' ? 'AI 原创旁白' : '经典引文匹配'}
+                </button>
+              ))}
+            </div>
+            <p style={{ marginTop: '10px', fontSize: '12px', color: 'var(--fg-subtle)', lineHeight: 1.6 }}>
+              {copyMode === 'ai-original'
+                ? 'AI 根据画面意境，原创一句极简旁白'
+                : '从文学、电影台词、歌词中匹配最契合的引文'}
+            </p>
+          </div>
+        )}
+
+        {/* Style Prompt - Hidden in Multi-Gen */}
+        {appMode === 'classic' && (
+          <div style={{ marginBottom: '2rem' }}>
+            <label htmlFor="style-prompt" style={FIELD_LABEL_STYLE}>
+              {copyMode === 'ai-original' ? '风格补充' : '附加要求'}
+              <span style={{ color: 'var(--fg-subtle)', fontWeight: 300, marginLeft: '4px' }}>（可选）</span>
+            </label>
+            <textarea
+              id="style-prompt"
+              rows={3}
+              value={stylePrompt}
+              onChange={e => setStylePrompt(e.target.value)}
+              placeholder={
+                copyMode === 'ai-original'
+                  ? '例如：更幽默一点、使用第二人称……不填则使用默认风格'
+                  : '例如：偏好日本文学、只选电影台词……'
+              }
+              style={{
+                width: '100%',
+                padding: '10px 0',
+                fontSize: '13.5px',
+                fontFamily: "'DM Sans', sans-serif",
+                color: 'var(--fg)',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: '1px solid var(--border-strong)',
+                borderRadius: 0,
+                resize: 'vertical',
+                outline: 'none',
+                lineHeight: 1.65,
+                transition: 'border-color 0.2s ease',
+              }}
+              onFocus={e => (e.target.style.borderBottomColor = 'var(--fg)')}
+              onBlur={e => (e.target.style.borderBottomColor = 'var(--border-strong)')}
+            />
+          </div>
+        )}
 
         {/* Generate Button */}
         <button
@@ -166,10 +211,10 @@ export function UploadWorkspace({
           {isGlobalGenerating ? (
             <>
               <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
-              {imagesCount > 1 ? 'AI 批量创作中…' : 'AI 创作中…'}
+              {appMode === 'multi-gen' ? 'AI 正在创作 6 条文案…' : (imagesCount > 1 ? 'AI 批量创作中…' : 'AI 创作中…')}
             </>
           ) : (
-            '✦ 开始智能创作'
+            appMode === 'multi-gen' ? '✦ 一键生成 6 条文案' : '✦ 开始智能创作'
           )}
         </button>
       </div>
@@ -226,7 +271,7 @@ export function UploadWorkspace({
               marginBottom: '4px',
               transition: 'color 0.2s ease',
             }}>
-              点击此处选择单个或多个文件
+              {appMode === 'multi-gen' ? '点击此处选择 1 张照片' : '点击此处选择单个或多个文件'}
             </p>
             <p style={{ fontSize: '12px', color: 'var(--fg-subtle)' }}>
               或将图片拖拽至此
@@ -234,14 +279,14 @@ export function UploadWorkspace({
           </div>
 
           <p style={{ fontSize: '11px', color: 'var(--fg-subtle)', letterSpacing: '0.04em' }}>
-            PNG · JPG · WEBP · HEIC，最高 5MB/张，最多6张
+            PNG · JPG · WEBP · HEIC，最高 5MB/张，{appMode === 'multi-gen' ? '限1张' : '最多6张'}
           </p>
 
           <input
             id="file-upload"
             name="file-upload"
             type="file"
-            multiple
+            multiple={appMode !== 'multi-gen'}
             accept="image/*,.heic,.heif"
             style={{ display: 'none' }}
             onChange={handleFileSelect}

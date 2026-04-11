@@ -8,12 +8,14 @@ interface MobileActionBarProps {
   imagesCount: number;
   isGlobalGenerating: boolean;
   processImages: () => Promise<void>;
+  appMode: 'classic' | 'multi-gen';
 }
 
 export function MobileActionBar({
   imagesCount,
   isGlobalGenerating,
   processImages,
+  appMode,
 }: MobileActionBarProps) {
   // Only show if there are images and we're not currently generating (though we could show during generating as well)
   const isVisible = imagesCount > 0;
@@ -66,25 +68,27 @@ export function MobileActionBar({
               {isGlobalGenerating ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
-                  <span>AI 创作中...</span>
+                  <span>{appMode === 'multi-gen' ? 'AI 正在创作 6 条文案…' : 'AI 创作中...'}</span>
                 </>
               ) : (
                 <>
                   <Sparkles size={18} />
-                  <span>开始智能创作</span>
-                  <span 
-                    style={{ 
-                      fontSize: '12px', 
-                      opacity: 0.8, 
-                      fontWeight: 400,
-                      background: 'rgba(255,255,255,0.2)',
-                      padding: '2px 8px',
-                      borderRadius: '10px',
-                      marginLeft: '4px'
-                    }}
-                  >
-                    {imagesCount}
-                  </span>
+                  <span>{appMode === 'multi-gen' ? '一键生成 6 条文案' : '开始智能创作'}</span>
+                  {appMode === 'classic' && (
+                    <span 
+                      style={{ 
+                        fontSize: '12px', 
+                        opacity: 0.8, 
+                        fontWeight: 400,
+                        background: 'rgba(255,255,255,0.2)',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        marginLeft: '4px'
+                      }}
+                    >
+                      {imagesCount}
+                    </span>
+                  )}
                 </>
               )}
             </button>
