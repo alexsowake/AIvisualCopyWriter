@@ -177,10 +177,11 @@ export function MultiGenGallery({
             原创区
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {originals.map(res => (
+            {originals.map((res, idx) => (
               <MultiGenCard
                 key={res.id}
                 res={res}
+                index={idx}
                 sourceImage={sourceImage}
                 modelProvider={modelProvider}
                 isExporting={exportingId === res.id}
@@ -203,10 +204,11 @@ export function MultiGenGallery({
             引文区
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {quotes.map(res => (
+            {quotes.map((res, idx) => (
               <MultiGenCard
                 key={res.id}
                 res={res}
+                index={idx + 3}
                 sourceImage={sourceImage}
                 modelProvider={modelProvider}
                 isExporting={exportingId === res.id}
@@ -226,6 +228,7 @@ export function MultiGenGallery({
 
 function MultiGenCard({
   res,
+  index,
   sourceImage,
   modelProvider,
   isExporting,
@@ -236,6 +239,7 @@ function MultiGenCard({
   onCopy,
 }: {
   res: MultiGenResult;
+  index: number;
   sourceImage: ImageItem | null;
   modelProvider: ModelProvider;
   isExporting: boolean;
@@ -245,18 +249,27 @@ function MultiGenCard({
   onStop: () => void;
   onCopy: () => void;
 }) {
+  const rotation = index % 2 === 0 ? 0.4 : -0.4;
+  const OFFSETS = [0, 4, -4] as const;
+  const offset = OFFSETS[index % 3];
+  const [mainText, attribution] = (res.result ?? '').split('\n\n');
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: offset, rotate: rotation }}
+      whileHover={{ y: offset - 4, transition: { duration: 0.2 } }}
       style={{
         background: 'var(--bg)',
         border: '1px solid var(--border)',
-        padding: '1.25rem',
+        padding: '1.5rem',
         display: 'flex',
         flexDirection: 'column',
-        minHeight: '200px'
+        minHeight: '220px',
+        boxShadow: '0 4px 20px -8px rgba(35, 26, 17, 0.08)',
+        transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       }}
+      className="group hover:border-border-strong"
     >
       <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{
@@ -296,25 +309,44 @@ function MultiGenCard({
         ) : (
           <>
             <div style={{
-              borderLeft: '2px solid var(--border-strong)',
-              paddingLeft: '12px',
-              marginBottom: '1rem',
+              marginBottom: '1.25rem',
               flex: 1
             }}>
               {res.copyMode === 'quote-style' ? (
                 <>
-                  <div style={{ fontSize: '13px', lineHeight: 1.6, color: 'var(--fg)', fontFamily: "'LXGW WenKai', serif" }}>
-                    {res.result?.split('\n\n')[0]}
+                  <div style={{
+                    fontSize: '14.5px',
+                    lineHeight: 1.7,
+                    color: 'var(--fg)',
+                    fontFamily: "'LXGW WenKai', serif",
+                    letterSpacing: '0.02em'
+                  }}>
+                    {mainText}
                   </div>
-                  {res.result?.split('\n\n')[1] && (
-                    <div style={{ textAlign: 'right', marginTop: '6px', fontSize: '11px', color: 'var(--fg-subtle)', fontStyle: 'italic', fontFamily: "'Playfair Display', serif" }}>
-                      {res.result.split('\n\n')[1]}
+                  {attribution && (
+                    <div style={{
+                      textAlign: 'right',
+                      marginTop: '12px',
+                      fontSize: '11px',
+                      color: 'var(--fg-subtle)',
+                      fontStyle: 'italic',
+                      fontFamily: "'Playfair Display', serif",
+                      opacity: 0.8
+                    }}>
+                      — {attribution}
                     </div>
                   )}
                 </>
               ) : (
-                <div style={{ fontSize: '13px', lineHeight: 1.6, color: 'var(--fg)', fontFamily: "'LXGW WenKai', serif", whiteSpace: 'pre-wrap' }}>
-                  {res.result}
+                <div style={{
+                  fontSize: '14.5px',
+                  lineHeight: 1.7,
+                  color: 'var(--fg)',
+                  fontFamily: "'LXGW WenKai', serif",
+                  whiteSpace: 'pre-wrap',
+                  letterSpacing: '0.01em'
+                }}>
+                  {mainText}
                 </div>
               )}
             </div>

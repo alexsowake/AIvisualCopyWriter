@@ -166,13 +166,15 @@ export function ResultCard({
           {img.status === 'success' && (
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '4px',
-              padding: '4px 9px', fontSize: '10px', fontWeight: 500,
-              background: 'rgba(35, 26, 17, 0.75)',
-              backdropFilter: 'blur(4px)',
-              color: 'white', letterSpacing: '0.1em',
+              padding: '6px 12px', fontSize: '10px', fontWeight: 500,
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(8px)',
+              color: 'var(--fg)', letterSpacing: '0.12em',
               fontFamily: "'DM Sans', sans-serif",
+              border: '0.5px solid var(--border)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
             }}>
-              <span style={{ fontSize: '9px', opacity: 0.8 }}>✦</span>
+              <span style={{ fontSize: '9px', opacity: 0.6 }}>✦</span>
               {MODEL_LABEL[modelProvider].split(' ')[0]} {effectiveCopyMode === 'ai-original' ? '瞎编' : '搬运'}
             </span>
           )}
@@ -287,50 +289,56 @@ export function ResultCard({
         {/* Success */}
         {img.status === 'success' && img.result && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', overflow: 'hidden', position: 'relative' }}>
-
-            {/* Result text — left accent line */}
-            <div style={{
-              borderLeft: '2px solid var(--border-strong)',
-              paddingLeft: '12px',
-              marginBottom: '1rem',
-              overflowY: 'auto',
-              maxHeight: '9rem',
-            }}>
-              {effectiveCopyMode === 'quote-style' ? (
-                <>
-                  <div style={{
-                    fontSize: '13.5px',
-                    lineHeight: 1.75,
-                    color: 'var(--fg)',
-                    fontFamily: "'LXGW WenKai', serif",
-                  }}>
-                    {img.result.split('\n\n')[0]}
-                  </div>
-                  {img.result.split('\n\n')[1] && (
+            {(() => {
+              const [mainText, attribution] = img.result.split('\n\n');
+              return (
+                <div style={{
+                  padding: '4px 0',
+                  marginBottom: '1.25rem',
+                  overflowY: 'auto',
+                  maxHeight: '10rem',
+                  flex: 1
+                }}>
+                  {effectiveCopyMode === 'quote-style' ? (
+                    <>
+                      <div style={{
+                        fontSize: '14.5px',
+                        lineHeight: 1.75,
+                        color: 'var(--fg)',
+                        fontFamily: "'LXGW WenKai', serif",
+                        letterSpacing: '0.015em'
+                      }}>
+                        {mainText}
+                      </div>
+                      {attribution && (
+                        <div style={{
+                          textAlign: 'right',
+                          marginTop: '12px',
+                          fontSize: '11px',
+                          color: 'var(--fg-subtle)',
+                          fontStyle: 'italic',
+                          fontFamily: "'Playfair Display', serif",
+                          opacity: 0.8
+                        }}>
+                          — {attribution}
+                        </div>
+                      )}
+                    </>
+                  ) : (
                     <div style={{
-                      textAlign: 'right',
-                      marginTop: '8px',
-                      fontSize: '11.5px',
-                      color: 'var(--fg-subtle)',
-                      fontStyle: 'italic',
-                      fontFamily: "'Playfair Display', serif",
+                      fontSize: '14.5px',
+                      lineHeight: 1.75,
+                      color: 'var(--fg)',
+                      fontFamily: "'LXGW WenKai', serif",
+                      whiteSpace: 'pre-wrap',
+                      letterSpacing: '0.01em'
                     }}>
-                      {img.result.split('\n\n')[1]}
+                      {mainText}
                     </div>
                   )}
-                </>
-              ) : (
-                <div style={{
-                  fontSize: '13.5px',
-                  lineHeight: 1.75,
-                  color: 'var(--fg)',
-                  fontFamily: "'LXGW WenKai', serif",
-                  whiteSpace: 'pre-wrap',
-                }}>
-                  {img.result}
                 </div>
-              )}
-            </div>
+              );
+            })()}
 
 
             {/* Action row — bottom-aligned via marginTop: auto */}
@@ -358,22 +366,24 @@ export function ResultCard({
                   primary: false,
                   success: copiedId === img.id,
                 },
-              ].map(({ label, icon, onClick, primary, success }) => (
+              ].map(({ label, icon, onClick, primary, success, disabled }) => (
                 <button
                   key={label}
                   onClick={onClick}
+                  disabled={disabled}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '5px',
-                    fontSize: '11.5px',
+                    fontSize: '11px',
                     fontWeight: 500,
                     fontFamily: "'DM Sans', sans-serif",
-                    padding: '5px 0',
+                    padding: '8px 4px',
+                    minHeight: '44px',
                     background: 'none',
                     border: 'none',
-                    borderBottom: '1px solid',
-                    cursor: 'pointer',
+                    borderBottom: '1.5px solid',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
                     color: success
                       ? '#3c8c50'
                       : primary
@@ -384,16 +394,18 @@ export function ResultCard({
                       : primary
                         ? 'var(--fg)'
                         : 'var(--border)',
-                    transition: 'color 0.18s ease, border-color 0.18s ease',
+                    transition: 'all 0.18s ease',
+                    opacity: disabled ? 0.5 : 1,
+                    touchAction: 'manipulation',
                   }}
                   onMouseEnter={e => {
-                    if (!success) {
+                    if (!success && !disabled) {
                       e.currentTarget.style.color = 'var(--fg)';
                       e.currentTarget.style.borderBottomColor = 'var(--fg)';
                     }
                   }}
                   onMouseLeave={e => {
-                    if (!success) {
+                    if (!success && !disabled) {
                       e.currentTarget.style.color = primary ? 'var(--fg)' : 'var(--fg-muted)';
                       e.currentTarget.style.borderBottomColor = primary ? 'var(--fg)' : 'var(--border)';
                     }

@@ -6,16 +6,17 @@
 @tailwind utilities;
 
 :root {
-  --bg:            #FAF9F6;
-  --fg:            #2b2015;
-  --fg-muted:      #7a7168;
-  --fg-subtle:     #a9a29a;
-  --surface:       #f3f1ed;
-  --surface-2:     #eae5dd;
-  --border:        #d8d2cb;
-  --border-strong: #9a918a;
-  --accent:        #a17a3a;
-  --accent-dim:    #f0e8d5;
+  /* OKLCH: L(lightness) C(chroma) H(hue) */
+  --bg:            oklch(0.98 0.005 65);   /* Warm paper background */
+  --fg:            oklch(0.25 0.02 65);    /* Soft mechanical graphite */
+  --fg-muted:      oklch(0.55 0.02 65);
+  --fg-subtle:     oklch(0.75 0.015 65);
+  --surface:       oklch(0.96 0.01 65);
+  --surface-2:     oklch(0.92 0.015 65);
+  --border:        oklch(0.88 0.01 65);
+  --border-strong: oklch(0.70 0.02 65);
+  --accent:        oklch(0.55 0.12 55);    /* Deep, warm accent */
+  --accent-dim:    oklch(0.94 0.04 70);    /* Subtle highlight tint */
 }
 
 *, *::before, *::after {
