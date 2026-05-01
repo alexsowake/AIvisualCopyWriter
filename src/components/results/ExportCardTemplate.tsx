@@ -70,17 +70,22 @@ export function ExportCardTemplate({ id, previewUrl, result, copyMode }: ExportC
           </div>
         )}
         <div className="w-full flex justify-end mt-12 mb-2">
-          <div className="text-[10px] tracking-widest text-slate-400 font-medium opacity-60 uppercase flex items-center gap-1.5">
-            <span>来自</span>
-            <svg width="10" height="15" viewBox="0 0 22 34" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', transform: 'translateY(1.5px)' }}>
-               <rect x="1.75" y="1.75" width="18.5" height="30.5" rx="9.25" strokeWidth="2.5" />
-               <line x1="1.75" y1="17" x2="20.25" y2="17" strokeWidth="2.5" />
-               <circle cx="11" cy="10" r="3.75" strokeWidth="2" />
-               <circle cx="7.5" cy="24" r="1.5" fill="currentColor" stroke="none" />
-               <circle cx="11" cy="24" r="1.5" fill="currentColor" stroke="none" />
-               <circle cx="14.5" cy="24" r="1.5" fill="currentColor" stroke="none" />
+          <div className="text-[10px] tracking-widest text-slate-400 font-medium opacity-60" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span className="uppercase">来自</span>
+            <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, verticalAlign: 'middle' }}>
+              <ellipse cx="50" cy="50" rx="30" ry="19" stroke="#64748b" strokeWidth="3.5" opacity="0.35" transform="rotate(-25 50 50)" />
+              <ellipse cx="50" cy="50" rx="21" ry="31" stroke="#64748b" strokeWidth="3.5" opacity="0.28" transform="rotate(18 50 50)" />
+              <path d="M 50 50 Q 63 41, 73 28" stroke="#64748b" strokeWidth="4.5" opacity="0.6" strokeLinecap="round" />
+              <path d="M 50 50 Q 37 63, 27 73" stroke="#64748b" strokeWidth="4.5" opacity="0.5" strokeLinecap="round" />
+              <path d="M 50 50 Q 67 57, 75 69" stroke="#64748b" strokeWidth="4.5" opacity="0.45" strokeLinecap="round" />
+              <circle cx="73" cy="28" r="6" fill="#64748b" />
+              <circle cx="27" cy="73" r="5" fill="#64748b" opacity="0.7" />
+              <circle cx="75" cy="69" r="4" fill="#64748b" opacity="0.55" />
+              <circle cx="50" cy="50" r="14" stroke="#64748b" strokeWidth="3.5" opacity="0.3" />
+              <circle cx="50" cy="50" r="9.5" fill="#64748b" />
             </svg>
-            <span>时间胶囊</span>
+            <span className="uppercase">时间胶囊</span>
+            <span>aicw.me</span>
           </div>
         </div>
       </div>
