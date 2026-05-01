@@ -25,7 +25,7 @@ export function ExportCardTemplate({ id, previewUrl, result, copyMode }: ExportC
             src={previewUrl}
             alt="export"
             loading="eager"
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'block' }}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
           />
         </div>
         {copyMode === 'quote-style' ? (

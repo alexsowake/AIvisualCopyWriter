@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间胶囊 — Orbit Refinement</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background: #F8F6F2;
+            color: #1e1810;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid rgba(43,32,21,0.1);
+            border-radius: 6px;
+            padding: 48px 32px 36px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.16,1,0.3,1);
+        }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(43,32,21,0.07); }
+        .card.active { outline: 2px solid rgba(43,32,21,0.3); }
+        .label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; opacity: 0.35; text-transform: uppercase; }
+        .title { font-size: 13px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.75; margin-bottom: 4px; }
+        .desc { font-size: 11.5px; line-height: 1.85; opacity: 0.5; font-weight: 300; text-align: left; }
+        .size-row { display: flex; align-items: center; gap: 20px; }
+        .size-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; opacity: 0.25; letter-spacing: 0.12em; }
+    </style>
+</head>
+<body style="padding: 60px 40px;">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState } = React;
+
+/* ══════════════════════════════════════════════════════
+   3A — ORIGINAL (cleaned up)
+   Curved gravity trails, offset center, asymmetric
+   satellites. Baseline to iterate from.
+   ══════════════════════════════════════════════════════ */
+const Orbit3A = () => (
+  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"
+       style={{ width: '100%', height: '100%' }} color="currentColor">
+    {/* Faint elliptical trails */}
+    <ellipse cx="50" cy="50" rx="30" ry="19"
+             stroke="currentColor" strokeWidth="0.9" opacity="0.18"
+             transform="rotate(-25 50 50)"/>
+    <ellipse cx="50" cy="50" rx="21" ry="31"
+             stroke="currentColor" strokeWidth="0.9" opacity="0.13"
+             transform="rotate(18 50 50)"/>
+    {/* Curved connections */}
+    <path d="M 50 50 Q 63 41, 73 28" stroke="currentColor" strokeWidth="1.5" opacity="0.4" strokeLinecap="round" fill="none"/>
+    <path d="M 50 50 Q 37 63, 27 73" stroke="currentColor" strokeWidth="1.5" opacity="0.35" strokeLinecap="round" fill="none"/>
+    <path d="M 50 50 Q 67 57, 75 69" stroke="currentColor" strokeWidth="1.5" opacity="0.3" strokeLinecap="round" fill="none"/>
+    {/* Satellites */}
+    <circle cx="73" cy="28" r="3.5" fill="currentColor"/>
+    <circle cx="27" cy="73" r="3" fill="currentColor" opacity="0.65"/>
+    <circle cx="75" cy="69" r="2.5" fill="currentColor" opacity="0.5"/>
+    {/* Center */}
+    <circle cx="50" cy="50" r="8.5" fill="currentColor"/>
+    <circle cx="50" cy="50" r="13" stroke="currentColor" strokeWidth="1.5" opacity="0.18"/>
+  </svg>
+);
+
+/* ══════════════════════════════════════════════════════
+   3B — SIX SATELLITES
+   6颗卫星对应「一图生六文」。中心偏移至 (46,46)
+   创造更多视觉张力。轨道线更细、更克制。
+   ══════════════════════════════════════════════════════ */
+const Orbit3B = () => (
+  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"
+       style={{ width: '100%', height: '100%' }} color="currentColor">
+    {/* Single faint orbit ring */}
+    <circle cx="47" cy="47" r="28" stroke="currentColor" strokeWidth="0.8" opacity="0.12"
+            strokeDasharray="2.5 4"/>
+    {/* 6 connections — varying opacity by distance */}
+    <g fill="none" stroke="currentColor" strokeLinecap="round">
+      <path d="M 47 47 Q 52 35, 62 22" strokeWidth="1.2" opacity="0.5"/>
+      <path d="M 47 47 Q 62 44, 75 38" strokeWidth="1.2" opacity="0.4"/>
+      <path d="M 47 47 Q 65 55, 72 68" strokeWidth="1.2" opacity="0.35"/>
+      <path d="M 47 47 Q 50 62, 47 76" strokeWidth="1.2" opacity="0.3"/>
+      <path d="M 47 47 Q 33 58, 24 68" strokeWidth="1.2" opacity="0.35"/>
+      <path d="M 47 47 Q 30 40, 21 30" strokeWidth="1.2" opacity="0.4"/>
+    </g>
+    {/* 6 satellites — 3 closer, 3 farther; varying sizes */}
+    <circle cx="62" cy="22" r="3" fill="currentColor"/>
+    <circle cx="75" cy="38" r="2.5" fill="currentColor" opacity="0.7"/>
+    <circle cx="72" cy="68" r="2" fill="currentColor" opacity="0.55"/>
+    <circle cx="47" cy="76" r="2.5" fill="currentColor" opacity="0.6"/>
+    <circle cx="24" cy="68" r="2" fill="currentColor" opacity="0.45"/>
+    <circle cx="21" cy="30" r="3" fill="currentColor" opacity="0.75"/>
+    {/* Center body */}
+    <circle cx="47" cy="47" r="8" fill="currentColor"/>
+  </svg>
+);
+
+/* ══════════════════════════════════════════════════════
+   3C — GRAVITY PULL (no orbit rings)
+   去掉椭圆轨道，只保留引力线+卫星。
+   线条更粗、端点更大，整体更有力量感。
+   中心添加内圆环，区分「照片」与「AI光环」。
+   ══════════════════════════════════════════════════════ */
+const Orbit3C = () => (
+  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"
+       style={{ width: '100%', height: '100%' }} color="currentColor">
+    {/* Connections — thicker, more decisive */}
+    <g fill="none" stroke="currentColor" strokeLinecap="round">
+      <path d="M 50 50 Q 60 38, 74 26" strokeWidth="2" opacity="0.55"/>
+      <path d="M 50 50 Q 35 60, 24 74" strokeWidth="2" opacity="0.45"/>
+      <path d="M 50 50 Q 67 58, 76 72" strokeWidth="1.5" opacity="0.35"/>
+    </g>
+    {/* Satellites — larger, bolder */}
+    <circle cx="74" cy="26" r="4.5" fill="currentColor"/>
+    <circle cx="24" cy="74" r="3.5" fill="currentColor" opacity="0.6"/>
+    <circle cx="76" cy="72" r="3" fill="currentColor" opacity="0.45"/>
+    {/* Center — layered: outer halo + inner solid */}
+    <circle cx="50" cy="50" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.12"/>
+    <circle cx="50" cy="50" r="9" fill="currentColor"/>
+    {/* Inner highlight ring */}
+    <circle cx="50" cy="50" r="5.5" stroke="#F8F6F2" strokeWidth="1.5" opacity="0.5"/>
+  </svg>
+);
+
+/* ══════════════════════════════════════════════════════
+   3D — MINIMAL PULL (most restrained)
+   极度克制版本。只有中心圆、三条直线、三个点。
+   没有椭圆、没有曲线。纯粹的点线关系。
+   测试：简到极致还能否保持「叙事感」？
+   ══════════════════════════════════════════════════════ */
+const Orbit3D = () => (
+  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"
+       style={{ width: '100%', height: '100%' }} color="currentColor">
+    {/* Three straight lines — clean, architectural */}
+    <g stroke="currentColor" strokeLinecap="round">
+      <line x1="50" y1="50" x2="72" y2="24" strokeWidth="1.5" opacity="0.5"/>
+      <line x1="50" y1="50" x2="26" y2="72" strokeWidth="1.5" opacity="0.4"/>
+      <line x1="50" y1="50" x2="78" y2="68" strokeWidth="1.5" opacity="0.3"/>
+    </g>
+    {/* Satellites */}
+    <circle cx="72" cy="24" r="4" fill="currentColor"/>
+    <circle cx="26" cy="72" r="3" fill="currentColor" opacity="0.6"/>
+    <circle cx="78" cy="68" r="2.5" fill="currentColor" opacity="0.45"/>
+    {/* Center — single strong circle, no inner ring */}
+    <circle cx="50" cy="50" r="9" fill="currentColor"/>
+  </svg>
+);
+
+/* ══════════════════════════════════════════════════════
+   RENDER
+   ══════════════════════════════════════════════════════ */
+const variants = [
+  {
+    id: 'A', Component: Orbit3A,
+    title: '3A — Original',
+    subtitle: 'CURVED TRAILS · DUAL ELLIPSE',
+    desc: '原始版本稍作清理。双椭圆轨道提供空间感，曲线引力路径有机流动。整体柔和，适合偏文艺向的品牌感。'
+  },
+  {
+    id: 'B', Component: Orbit3B,
+    title: '3B — Six Voices',
+    subtitle: 'SIX SATELLITES · OFFSET CENTER',
+    desc: '六颗卫星直接呼应「一图生六文」功能。中心偏移至 (47,47)，虚线轨道圆更含蓄。连接线极细，减少视觉噪声。'
+  },
+  {
+    id: 'C', Component: Orbit3C,
+    title: '3C — Gravity Pull',
+    subtitle: 'BOLD LINES · LAYERED CENTER',
+    desc: '去掉轨道椭圆，线条加粗变得更有力量。中心双圆环暗示「照片本体」与「AI光晕」两个层次。三颗卫星尺寸对比更明显。'
+  },
+  {
+    id: 'D', Component: Orbit3D,
+    title: '3D — Minimal Pull',
+    subtitle: 'STRAIGHT LINES · PURE GEOMETRY',
+    desc: '极度克制：只有三条直线和四个圆。没有任何装饰性元素。测试在最简形态下叙事感是否依然成立——答案通常是肯定的。'
+  },
+];
+
+const App = () => {
+  const [active, setActive] = useState(null);
+  return (
+    <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: 56 }}>
+        <p className="label" style={{ marginBottom: 12 }}>Orbit Direction — 4 Refinements</p>
+        <h1 style={{ fontSize: 36, fontWeight: 200, letterSpacing: '0.2em' }}>Asymmetric Orbit</h1>
+        <p className="label" style={{ marginTop: 10 }}>Select your preferred direction</p>
+      </div>
+
+      {/* 2×2 grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 56 }}>
+        {variants.map(v => (
+          <div key={v.id} className={`card ${active === v.id ? 'active' : ''}`}
+               onClick={() => setActive(active === v.id ? null : v.id)}>
+            {active === v.id && (
+              <span className="label" style={{ marginBottom: 16, opacity: 0.5 }}>✦ selected</span>
+            )}
+            {/* Logo at display size */}
+            <div style={{ width: 120, height: 120, marginBottom: 28 }}>
+              <v.Component />
+            </div>
+            <div style={{ width: '100%' }}>
+              <p className="title">{v.title}</p>
+              <p className="label" style={{ marginBottom: 14 }}>{v.subtitle}</p>
+              <p className="desc">{v.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Scalability strip */}
+      <div style={{ background: '#fff', border: '1px solid rgba(43,32,21,0.08)', borderRadius: 6, padding: '36px 40px', marginBottom: 24 }}>
+        <p className="label" style={{ textAlign: 'center', marginBottom: 28 }}>Favicon · Nav · Icon Scale Test</p>
+        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end' }}>
+          {variants.map(v => (
+            <div key={v.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 64, height: 64 }}><v.Component /></div>
+              <div style={{ width: 32, height: 32, opacity: 0.8 }}><v.Component /></div>
+              <div style={{ width: 16, height: 16, opacity: 0.65 }}><v.Component /></div>
+              <span className="label">{v.id}</span>
+            </div>
+          ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'flex-end', paddingBottom: 22 }}>
+            {['64px', '32px', '16px'].map(s => (
+              <span key={s} className="label" style={{ lineHeight: '64px', display: 'block' }}>{s}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Dark bg strip */}
+      <div style={{ background: '#1e1810', borderRadius: 6, padding: '36px 40px', marginBottom: 56 }}>
+        <p className="label" style={{ textAlign: 'center', marginBottom: 28, color: '#F8F6F2' }}>Dark Background</p>
+        <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+          {variants.map(v => (
+            <div key={v.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 72, height: 72, color: '#F8F6F2' }}><v.Component /></div>
+              <span className="label" style={{ color: '#F8F6F2' }}>{v.id}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Branding context — how it looks in a nav bar */}
+      <div style={{ background: '#fff', border: '1px solid rgba(43,32,21,0.08)', borderRadius: 6, padding: '28px 32px', marginBottom: 56 }}>
+        <p className="label" style={{ marginBottom: 24 }}>Nav Bar Context</p>
+        {variants.map(v => (
+          <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, paddingBottom: 20,
+                                    borderBottom: '1px solid rgba(43,32,21,0.06)' }}>
+            <div style={{ width: 24, height: 24, flexShrink: 0 }}><v.Component /></div>
+            <span style={{ fontSize: 14, fontWeight: 400, letterSpacing: '0.06em', opacity: 0.8 }}>时间胶囊</span>
+            <span className="label" style={{ marginLeft: 'auto' }}>{v.id}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ textAlign: 'center', marginBottom: 40 }}>
+        <p className="label">告诉我你喜欢哪个（A/B/C/D），或者描述想要调整的细节</p>
+      </div>
+    </div>
+  );
+};
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>

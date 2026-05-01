@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间胶囊 — 3A × Six Satellites</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; background: #F8F6F2; color: #1e1810; }
+        .mono { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.32; }
+        .card { background: #fff; border: 1px solid rgba(43,32,21,0.1); border-radius: 6px; transition: all 0.5s cubic-bezier(0.16,1,0.3,1); }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(43,32,21,0.07); }
+    </style>
+</head>
+<body style="padding: 60px 40px;">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState } = React;
+
+/*
+  3A 的视觉语言：
+  - 双椭圆轨道（倾斜、交叉）
+  - 曲线引力连接（Q bezier）
+  - 中心光晕圆环
+  - 渐变不透明度（近大远小、近实远虚）
+
+  加入 6 颗卫星的挑战：
+  - 6条线如果均匀分布会很普通
+  - 解法：分成两个「星群」—— 3颗聚在右上（原创区），3颗散在左下（引文区）
+  - 两个椭圆轨道各自「承载」一个星群
+  - 卫星尺寸: 3.5 / 3 / 2.5 / 3 / 2.5 / 2（近大远小）
+*/
+
+/* ── 融合版：3A 语言 + 6颗卫星 ─────────────────────────── */
+const OrbitSix = () => (
+  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"
+       style={{ width: '100%', height: '100%' }} color="currentColor">
+
+    {/* 双椭圆轨道 — 3A原版，保持倾斜交叉 */}
+    <ellipse cx="50" cy="50" rx="30" ry="19"
+             stroke="currentColor" strokeWidth="0.9" opacity="0.18"
+             transform="rotate(-25 50 50)"/>
+    <ellipse cx="50" cy="50" rx="21" ry="31"
+             stroke="currentColor" strokeWidth="0.9" opacity="0.13"
+             transform="rotate(18 50 50)"/>
+
+    {/* ── 右上星群（3颗）— 沿第一条椭圆轨道 ── */}
+    {/* 曲线引力线 */}
+    <path d="M 50 50 Q 60 38, 71 24"  stroke="currentColor" strokeWidth="1.5" opacity="0.45" strokeLinecap="round" fill="none"/>
+    <path d="M 50 50 Q 66 44, 78 36"  stroke="currentColor" strokeWidth="1.4" opacity="0.35" strokeLinecap="round" fill="none"/>
+    <path d="M 50 50 Q 67 56, 78 66"  stroke="currentColor" strokeWidth="1.3" opacity="0.28" strokeLinecap="round" fill="none"/>
+    {/* 卫星节点 */}
+    <circle cx="71" cy="24" r="3.5" fill="currentColor"/>
+    <circle cx="78" cy="36" r="2.5" fill="currentColor" opacity="0.65"/>
+    <circle cx="78" cy="66" r="2"   fill="currentColor" opacity="0.5"/>
+
+    {/* ── 左下星群（3颗）— 沿第二条椭圆轨道 ── */}
+    {/* 曲线引力线 */}
+    <path d="M 50 50 Q 37 62, 26 74"  stroke="currentColor" strokeWidth="1.5" opacity="0.38" strokeLinecap="round" fill="none"/>
+    <path d="M 50 50 Q 34 50, 20 46"  stroke="currentColor" strokeWidth="1.3" opacity="0.28" strokeLinecap="round" fill="none"/>
+    <path d="M 50 50 Q 40 36, 30 22"  stroke="currentColor" strokeWidth="1.2" opacity="0.22" strokeLinecap="round" fill="none"/>
+    {/* 卫星节点 */}
+    <circle cx="26" cy="74" r="3"   fill="currentColor" opacity="0.7"/>
+    <circle cx="20" cy="46" r="2.5" fill="currentColor" opacity="0.5"/>
+    <circle cx="30" cy="22" r="2"   fill="currentColor" opacity="0.38"/>
+
+    {/* 中心天体 — 3A原版：实心大圆 + 光晕环 */}
+    <circle cx="50" cy="50" r="13" stroke="currentColor" strokeWidth="1.5" opacity="0.18"/>
+    <circle cx="50" cy="50" r="8.5" fill="currentColor"/>
+  </svg>
+);
+
+/* ── 对照用：原始 3A（3颗） ─────────────────────────────── */
+const Orbit3A = () => (
+  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"
+       style={{ width: '100%', height: '100%' }} color="currentColor">
+    <ellipse cx="50" cy="50" rx="30" ry="19"
+             stroke="currentColor" strokeWidth="0.9" opacity="0.18"
+             transform="rotate(-25 50 50)"/>
+    <ellipse cx="50" cy="50" rx="21" ry="31"
+             stroke="currentColor" strokeWidth="0.9" opacity="0.13"
+             transform="rotate(18 50 50)"/>
+    <path d="M 50 50 Q 63 41, 73 28" stroke="currentColor" strokeWidth="1.5" opacity="0.4"  strokeLinecap="round" fill="none"/>
+    <path d="M 50 50 Q 37 63, 27 73" stroke="currentColor" strokeWidth="1.5" opacity="0.35" strokeLinecap="round" fill="none"/>
+    <path d="M 50 50 Q 67 57, 75 69" stroke="currentColor" strokeWidth="1.5" opacity="0.3"  strokeLinecap="round" fill="none"/>
+    <circle cx="73" cy="28" r="3.5" fill="currentColor"/>
+    <circle cx="27" cy="73" r="3"   fill="currentColor" opacity="0.65"/>
+    <circle cx="75" cy="69" r="2.5" fill="currentColor" opacity="0.5"/>
+    <circle cx="50" cy="50" r="8.5" fill="currentColor"/>
+    <circle cx="50" cy="50" r="13"  stroke="currentColor" strokeWidth="1.5" opacity="0.18"/>
+  </svg>
+);
+
+const App = () => {
+  const SIZES = [160, 80, 48, 24, 16];
+
+  return (
+    <div style={{ maxWidth: 960, margin: '0 auto' }}>
+
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: 52 }}>
+        <p className="mono" style={{ marginBottom: 10 }}>3A Language × Six Satellites</p>
+        <h1 style={{ fontSize: 32, fontWeight: 200, letterSpacing: '0.22em' }}>Asymmetric Orbit</h1>
+      </div>
+
+      {/* Hero comparison — side by side */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 32 }}>
+        {/* Original */}
+        <div className="card" style={{ padding: '48px 32px 36px', display:'flex', flexDirection:'column', alignItems:'center' }}>
+          <p className="mono" style={{ marginBottom: 28 }}>Original — 3 satellites</p>
+          <div style={{ width: 160, height: 160 }}><Orbit3A /></div>
+        </div>
+        {/* New */}
+        <div className="card" style={{ padding: '48px 32px 36px', display:'flex', flexDirection:'column', alignItems:'center',
+                                        outline: '2px solid rgba(43,32,21,0.25)' }}>
+          <p className="mono" style={{ marginBottom: 28 }}>New — 6 satellites ✦</p>
+          <div style={{ width: 160, height: 160 }}><OrbitSix /></div>
+        </div>
+      </div>
+
+      {/* Scale strip */}
+      <div className="card" style={{ padding: '36px 40px', marginBottom: 20 }}>
+        <p className="mono" style={{ marginBottom: 28 }}>Scale — 160 · 80 · 48 · 24 · 16 px</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
+          {SIZES.map(s => (
+            <div key={s} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap: 8 }}>
+              <div style={{ width: s, height: s }}><OrbitSix /></div>
+              <span className="mono">{s}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Dark bg */}
+      <div style={{ background: '#1e1810', borderRadius: 6, padding: '36px 40px', marginBottom: 20 }}>
+        <p className="mono" style={{ color: '#F8F6F2', marginBottom: 28 }}>Dark background</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
+          {SIZES.map(s => (
+            <div key={s} style={{ width: s, height: s, color: '#F8F6F2' }}><OrbitSix /></div>
+          ))}
+        </div>
+      </div>
+
+      {/* Nav bar context */}
+      <div className="card" style={{ padding: '28px 32px', marginBottom: 20 }}>
+        <p className="mono" style={{ marginBottom: 20 }}>Nav bar · 24px</p>
+        <div style={{ display:'flex', flexDirection:'column', gap: 16 }}>
+          {/* Light nav */}
+          <div style={{ display:'flex', alignItems:'center', gap: 8, padding: '12px 16px',
+                        background: '#F8F6F2', borderRadius: 4 }}>
+            <div style={{ width: 22, height: 22 }}><OrbitSix /></div>
+            <span style={{ fontSize: 14, fontWeight: 400, letterSpacing: '0.06em', opacity: 0.8 }}>时间胶囊</span>
+          </div>
+          {/* Dark nav */}
+          <div style={{ display:'flex', alignItems:'center', gap: 8, padding: '12px 16px',
+                        background: '#1e1810', borderRadius: 4 }}>
+            <div style={{ width: 22, height: 22, color: '#F8F6F2' }}><OrbitSix /></div>
+            <span style={{ fontSize: 14, fontWeight: 400, letterSpacing: '0.06em', color: '#F8F6F2', opacity: 0.85 }}>时间胶囊</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Favicon preview */}
+      <div className="card" style={{ padding: '28px 32px', marginBottom: 48 }}>
+        <p className="mono" style={{ marginBottom: 20 }}>Favicon simulation · 32px with bg</p>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          {['#F8F6F2','#ffffff','#1e1810','#a17a3a'].map(bg => (
+            <div key={bg} style={{ width: 32, height: 32, background: bg, borderRadius: 6,
+                                    display:'flex', alignItems:'center', justifyContent:'center',
+                                    boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }}>
+              <div style={{ width: 20, height: 20,
+                            color: bg === '#1e1810' || bg === '#a17a3a' ? '#F8F6F2' : '#1e1810' }}>
+                <OrbitSix />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ textAlign: 'center', paddingBottom: 40 }}>
+        <p className="mono">满意就确认，或告诉我需要微调的地方</p>
+      </div>
+    </div>
+  );
+};
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>

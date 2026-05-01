@@ -62,40 +62,95 @@ export function MultiGenGallery({
 
   const handleExport = async (id: string) => {
     const wrapper = document.getElementById(`export-wrapper-${id}`);
-    const card = document.getElementById(`export-card-${id}`);
-    if (!wrapper || !card) return;
+    if (!wrapper || !sourceImage) return;
 
     setExportingId(id);
-    try {
-      const html2canvas = (await import('html2canvas')).default;
-      
-      // Temporary visibility for html2canvas
-      wrapper.style.opacity = '1';
-      wrapper.style.pointerEvents = 'auto';
-      wrapper.style.position = 'fixed';
-      wrapper.style.zIndex = '9999';
+    let cloneWrapper: HTMLElement | null = null;
+    let originalUrl: string | null = null;
 
-      const canvas = await html2canvas(card, {
+    try {
+      await document.fonts.ready;
+      const html2canvas = (await import('html2canvas')).default;
+
+      cloneWrapper = wrapper.cloneNode(true) as HTMLElement;
+      cloneWrapper.style.cssText = 'position:fixed;left:0;top:0;opacity:1;z-index:-9999;pointer-events:none;';
+      document.body.appendChild(cloneWrapper);
+
+      const cloneNode = cloneWrapper.querySelector(`#export-card-${id}`) as HTMLElement;
+      const cloneImgEl = cloneWrapper.querySelector('img') as HTMLImageElement | null;
+
+      // Replace with original high-res file, fall back to previewUrl on error
+      if (sourceImage.originalFile && cloneImgEl) {
+        originalUrl = URL.createObjectURL(sourceImage.originalFile);
+        cloneImgEl.removeAttribute('srcset');
+        cloneImgEl.removeAttribute('sizes');
+        cloneImgEl.src = originalUrl;
+
+        await new Promise<void>(resolve => {
+          if (cloneImgEl.complete && cloneImgEl.naturalWidth > 0) { resolve(); return; }
+          cloneImgEl.onload = () => resolve();
+          cloneImgEl.onerror = () => {
+            cloneImgEl.src = sourceImage.previewUrl ?? '';
+            cloneImgEl.onload = () => resolve();
+            cloneImgEl.onerror = () => resolve();
+          };
+        });
+
+        await cloneImgEl.decode().catch(() => {});
+      }
+
+      // Adaptive crop: landscape max 4:3, portrait max 3:4
+      if (cloneImgEl && cloneImgEl.naturalWidth > 0 && cloneImgEl.naturalHeight > 0) {
+        const nw = cloneImgEl.naturalWidth;
+        const nh = cloneImgEl.naturalHeight;
+        const isPortrait = nh > nw;
+        const naturalRatio = nw / nh;
+        const targetRatio = isPortrait
+          ? Math.max(naturalRatio, 3 / 4)
+          : Math.min(naturalRatio, 4 / 3);
+
+        if (cloneImgEl.parentElement) {
+          cloneImgEl.parentElement.style.paddingTop = `${(100 / targetRatio).toFixed(2)}%`;
+        }
+
+        let sx = 0, sy = 0, sw = nw, sh = nh;
+        if (nw / nh > targetRatio) {
+          sw = Math.round(nh * targetRatio);
+          sx = Math.round((nw - sw) / 2);
+        } else if (nw / nh < targetRatio) {
+          sh = Math.round(nw / targetRatio);
+          sy = Math.round((nh - sh) / 2);
+        }
+        const cropCanvas = document.createElement('canvas');
+        cropCanvas.width = sw;
+        cropCanvas.height = sh;
+        cropCanvas.getContext('2d')!.drawImage(cloneImgEl, sx, sy, sw, sh, 0, 0, sw, sh);
+        cloneImgEl.src = cropCanvas.toDataURL('image/jpeg', 1.0);
+        await cloneImgEl.decode().catch(() => {});
+      }
+
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      const canvas = await html2canvas(cloneNode, {
+        scale: 3,
         useCORS: true,
-        scale: 2,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#FAF9F6',
         logging: false,
       });
 
-      wrapper.style.opacity = '0';
-      wrapper.style.pointerEvents = 'none';
-      wrapper.style.position = 'absolute';
-      wrapper.style.zIndex = '-1';
-
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
       const link = document.createElement('a');
-      link.download = `Copywriter-${id.substring(0, 5)}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.download = `时间胶囊-${Date.now()}.jpg`;
+      link.href = dataUrl;
       link.click();
       showToast('图片导出成功', 'success');
     } catch (err) {
       console.error('Export failed:', err);
       showToast('导出失败，请尝试截图保存', 'error');
     } finally {
+      cloneWrapper?.remove();
+      if (originalUrl) URL.revokeObjectURL(originalUrl);
       setExportingId(null);
     }
   };

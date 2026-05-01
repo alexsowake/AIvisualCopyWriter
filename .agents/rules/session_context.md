@@ -1,119 +1,76 @@
 # Session Context — AIvisualCopyWriter
 
-> 最后更新：2026-04-08（第 5 次 HEIC 修复：恢复 heic2any + 暴露真实错误）
+> 最后更新：2026-04-12（Multi-Gen 功能完结 + Impeccable 设计规范引入 + Next.js 16 环境迁移）
 
 ---
 
 ## 一、项目概述
 
-Next.js 14 应用，功能：用户上传图片 → 调用大模型 API 生成营销文案。  
-部署平台：Vercel（Serverless，Edge Runtime 不兼容 Buffer/fs，须指定 `runtime = 'nodejs'`）。  
-Git 仓库：`alexsowake/AIvisualCopyWriter`，主分支 `main`。
+本产品名为“时间胶囊” (Time Capsule)，是一款基于 AI 的视觉文案创作工具。
+- **核心功能**：图片上传 → 视觉分析 → 生成 6 种不同风格的文案（3 个原创创作，3 个经典引文）。
+- **技术栈**：Next.js 16 (Webpack Mode), React 18, Tailwind CSS, Framer Motion, OKLCH Color System.
+- **运行环境**：Node.js v22.17.0+，支持局域网移动端联调。
 
 ---
 
-## 二、核心开发规范
+## 二、核心开发规范与设计准则
 
-### 2.1 修复原则
-- **严禁超出修复范围**：每次修复只改动与问题直接相关的代码，不附带重构、注释整理或功能扩展。
-- **新依赖需明确理由**：添加包之前必须确认它不是现有包的传递依赖（避免重复引入）。
-- **heic2any 必须动态引入**：`heic2any` 在模块顶层加载时会立即执行 `new Worker(URL.createObjectURL(...))`，在 Vercel CSP 下报错。必须用 `await import('heic2any')` 动态引入，将 Worker 创建推迟到实际调用时，才能被 try-catch 安全拦截。
+### 2.1 Impeccable 设计准则 (核心)
+- **拒绝“AI 审美指纹”**：避免生成式 AI 常用的“廉价”装饰（如渐变描边、极光背景）。
+- **OKLCH 色彩系统**：严禁使用 Hex/HSL。所有色彩必须基于感知均匀的 `oklch()` 空间，以保证不同设备间的视觉一致性。
+- **节奏重于对称 (Rhythm over Symmetry)**：结果卡片应具有轻微的不对称旋转或偏移，模拟“相册拼贴”的有机感，而非死板的仪表盘网格。
+- **禁用反模式 (Ban List)**：
+    - **Ban 1**: 严禁在卡片左侧或右侧使用粗边装饰条 (Side-stripe borders)。
+- **字体规范**：当前保留 `DM Sans` / `Playfair Display`（待后续重塑），中文使用 `LXGW WenKai`。
 
-### 2.2 API Route 规范
-每个自定义 API route 顶部必须显式声明：
-```ts
-export const runtime = 'nodejs';   // 兼容 Buffer/fs（heic-convert 等 Node 原生模块）
-export const maxDuration = 60;     // 防止大文件/慢 LLM 触发 Vercel 默认超时导致 504
-```
+### 2.2 移动端优先 (Mobile First)
+- **触控热区**：所有点击元素的最小点击面积必须达到 **44px x 44px** (Apple HIG 标准)。
+- **交互反馈**：移除所有依赖 `hover` 的核心交互，确保在 iPhone/Android 触摸屏上逻辑闭环。
+- **流畅性**：关键交互元素（如上传标签、模式切换）必须开启 `touch-action: manipulation` 消除 300ms 延迟。
 
-### 2.3 错误透传原则
-- 禁止在 catch 末端用固定文案掩盖真实错误（如 `'HEIC 转换失败，请转为 JPG 后上传'`）。
-- 服务端返回非 2xx 时，必须读取 `res.json()` 中的 `error` 字段透传，使界面能精准显示 504、OOM 等具体原因。
-- 最终 catch 块统一用：`throw new Error(err instanceof Error ? err.message : 'HEIC 转换失败')`
-
-### 2.4 审美与设计语言
-- **极简主义原则**：禁止使用高饱和度红色报警；错误及常规提示以低饱和度或中性色呈现，保持"文青"高级感。
-- **字体规范**：西文 `DM Sans` / `Playfair Display`，中文核心识别字 `LXGW WenKai（落霞文楷）`。
-- **AI 标签协议**：`✦ [Model] 瞎编`（原创）或 `✦ [Model] 搬运`（引文），带微型 `✦` 符号。
-
-### 2.5 交互逻辑规范
-- **任务受控流**：单张图片支持"停止生成"与"重新生成"；点击"停止"时**严禁**自动移除图片卡片。
-- **移除即销毁**：右上角"X"是移除图片的唯一入口。
-- **上传熔断器**：全局限制单次任务最多 **6 张图片**，超出部分自动截断并伴随 `showToast`。
-- **占位优先（UX Fast-path）**：图片上传后立即生成占位卡片，随后再异步进入 EXIF 提取与解码循环。
-
-### 2.6 算力与处理策略
-- **算力左移**：优先将图片压缩、EXIF 提取、HEIC 解码移至前端执行，换取低服务器成本与响应延迟。
-- **串行处理协议**：移动端内存敏感，图片处理流程（解码、压缩）必须按顺序排队执行，严禁大规模并行 `Promise.all`。
-- **WeChat WebView 防御**：针对微信端 WASM 的 OOM 风险，实施 **5MB 全局前置熔断**。
-
-### 2.7 提交规范
-- 功能里程碑：`里程碑：[功能描述]`
-- 线上修复：`修复<描述>` 或 `N次修复<描述>`（迭代次数前缀）
+### 2.3 技术架构规范
+- **Webpack 强制模式**：由于 Next.js 16 默认启用 Turbopack 导致自定义 Webpack Fallback 失效，当前通过 `next dev --webpack` 运行以支持 `fs/zlib` 在客户端的静默降级。
+- **环境安全**：局域网开发必须在 `next.config.mjs` 的 `allowedDevOrigins` 中显式允许移动端访问的 IP。
+- **HEIC 策略流**：保持 **v5 架构**（客户端 Canvas → 客户端 heic2any 动态引入 → 服务端 Node 兜底）。
 
 ---
 
-## 三、HEIC 转换架构（当前三策略，v5）
+## 三、已完成里程碑
 
-| 策略 | 实现 | 适用场景 | 失败行为 |
-|------|------|----------|----------|
-| 策略 1 | `createImageBitmap` + 5s 超时 + 0×0 bitmap 检测 | iOS Safari、Chrome 120+、桌面端 | 超时或空 bitmap → catch → fallback |
-| 策略 1.5 | `await import('heic2any')`（动态引入，客户端 asm.js） | Android、PC 无原生支持时的前端兜底 | 失败 → catch → fallback 服务端 |
-| 策略 2 | POST `/api/convert-heic`（`heic-convert`，服务端） | 前两策略均失败时的最终兜底 | 失败 → 透传真实错误信息（含 HTTP status / JSON error） |
-
-**历史沿革说明**：
-- v2（`edc598e`）：首次引入 heic2any（静态 import，有顶层 Worker 问题）
-- v3（`cfcb14c`）：将 1.5 换成 heic-decode WASM 主线程（Android 实测仍不稳定）
-- v4（`22693b6`）：删除策略 1.5，退化为双策略（服务端兜底崩溃后全军覆没）
-- **v5（当前）**：恢复 heic2any 但改为动态 import，规避顶层 Worker 问题；同时修复错误透传
+| 日期 | 状态 | 内容 |
+|------|------|------|
+| 2026-04-12 | ✅ 已完成 | **设计精修**：全站色彩迁移至 OKLCH，引入非对称网格节奏，移除 Side-stripe 反模式。 |
+| 2026-04-11 | ✅ 已完结 | **Multi-Gen 模式**：实现“一图生多文” 1+6 瀑布流输出，支持并发生成与单个导出。 |
+| 2026-04-11 | ✅ 故障排除 | **环境重塑**：解决 Next.js 16 构建失败与磁盘损坏导致的 `ERR_INVALID_PACKAGE_CONFIG`。 |
+| 2026-04-11 | ✅ 已优化 | **移动端适配**：修复 iPhone 上传无效问题，标准化 44px 触控目标。 |
 
 ---
 
-## 四、已完成里程碑（按时间倒序）
+## 四、当前待办任务 (Next Steps)
 
-| 日期 | 内容 |
-|------|------|
-| 2026-04-08 | **v5 修复**：恢复策略 1.5（`heic2any` 动态 import），修复错误透传（`res.json().error` + `err.message` 透传） |
-| 2026-04-07 | **v4（4th 修复）**：删除策略 1.5（heic-decode 客户端），两路由加 `maxDuration=60`，卸载 `@types/heic-decode` |
-| 2026-04-07 | **v3（3次修复）**：将策略 1.5 从 `heic2any` 替换为 `heic-decode`（无 Worker，WASM 主线程） |
-| 2026-04-07 | **v2（2次修复）**：引入策略 1.5 `heic2any`，修复 ResultCard 错误信息展示 |
-| 2026-04-07 | **v1（首次修复）**：策略 1 超时检测 + ResultGallery 修复 + 测试脚本 |
-| — | 优化前端文案、增加 Umami 统计、修复导出高清、优化编译速度、限制上传数量、修复 SystemPrompt、调整大模型选项 |
+1. `[ ]` **全流程真机回归**：在真实 iOS (Safari) 和 Android 进行“多重生成 -> 导出图片”的闭环测试。
+2. `[ ]` **字体品牌化重塑**：遵循 Impeccable 准则，将过时字体更换为更具性格的配对（如 Bricolage / Chivo）。
+3. `[ ]` **Turbopack 迁移评估**：研究如何将目前的 Webpack Fallback 逻辑平滑迁移至 Turbopack，以恢复极致编译速度。
+4. `[ ]` **多图上传逻辑复用**：评估是否将 Multi-Gen 的 1+6 逻辑扩展至多图场景。
 
 ---
 
-## 五、当前待办任务
-
-1. **Android HEIC 线上回归验证**：v5 修复未提交/部署，需在 Android Chrome 上传 HEIC 文件，验证策略 1.5（heic2any 动态引入）能否在 Vercel 生产 CSP 下成功运行。
-2. **测试脚本更新**：`scripts/test-android-issues.mjs` 为旧策略设计，当前三策略架构下覆盖范围不准确，需评估更新或删除。
-3. **UI 渲染降效优化**：将 `addFiles` 彻底迁移至"瞬时占位 + 背景解码"两段式逻辑。
-4. **WeChat 实机性能测试**：验证 5MB 拦截对防止微信白屏的真实有效性。
-
----
-
-## 六、已知技术债务
+## 五、已知技术债务
 
 | 优先级 | 问题 | 说明 |
 |--------|------|------|
-| 高 | **npm audit 4 个高危漏洞** | 需评估 `npm audit fix` 是否有破坏性变更再处理 |
-| 中 | **heic2any Vercel CSP 风险未最终验证** | 动态 import 理论上可规避顶层 Worker 报错，但 Vercel 生产环境 CSP 是否允许 `blob:` Worker 在运行时创建，仍需真机确认。若不行，策略 1.5 会静默 fallback 到服务端 |
-| 中 | **状态管理过度集中** | `useImageProcessor.ts` 中 `images` 数组承载了过多业务元数据与状态标志，长期应抽离为独立 Provider 或 `useReducer` |
-| 中 | **编译系统不匹配（Turbopack）** | Next.js 14.2.x Turbopack 模式下嵌套 Worker 触发 `fs/zlib` 静态分析警告 |
-| 低 | **`heic-decode` 仍为传递依赖** | 仍是 `heic-convert` 的传递依赖，升级时需注意版本联动 |
-| 低 | **exifr 风险预警** | `d6c91ff` 提交标注过风险，未在后续提交中明确闭环 |
-| 低 | **内存管理风险** | 缺乏全局 `URL.revokeObjectURL` 统一管控，频繁上传/清空场景下内存压力持续上升 |
-| 低 | **模型 API Key 无运行时校验** | kimi/qwen/gemini Key 缺失时静默失败，无明确错误提示 |
+| **高** | **Turbopack 绕过** | 目前强行使用 `--webpack` 降级运行，失去了 Turbopack 带来的开发提速。 |
+| **中** | **IP 硬编码** | `allowedDevOrigins` 中硬编码了局域网 IP (`192.168.31.2`)，切换环境需手动修改。 |
+| **中** | **反射性字体 (Reflex Fonts)** | `Playfair Display` 和 `DM Sans` 属于过度普及的“反射性选择”，建议更换以增加品牌辨识度。 |
+| **低** | **Hydration 风险** | 非对称旋转采用了 `index % 2` 逻辑，在 SSR 场景下需监控服务端与客户端是否存在渲染不一致。 |
+| **低** | **冗余逻辑** | `MultiGenCard` 与 `ResultCard` 存在视觉逻辑重叠，后续建议合并为统一的展示组件。 |
 
 ---
 
-## 七、关键文件速查
+## 六、关键文件速查
 
-| 文件 | 职责 |
-|------|------|
-| `src/hooks/useImageProcessor.ts` | 图片预处理核心：HEIC 三策略转换、EXIF 提取、WebP 压缩 |
-| `src/app/api/convert-heic/route.ts` | HEIC 服务端转换，`runtime=nodejs`，`maxDuration=60` |
-| `src/app/api/generate-copy/route.ts` | 文案生成，支持 kimi/qwen/gemini，`maxDuration=60` |
-| `src/config/systemPrompt.ts` | 大模型系统提示词（ai-original / quote-style 两种模式） |
-| `src/components/results/ResultCard.tsx` | 单张结果卡片（含错误状态展示） |
-| `src/components/results/ResultGallery.tsx` | 结果列表与导出功能 |
-| `scripts/test-android-issues.mjs` | Android 问题测试脚本（内容已过时，见§五） |
+- `src/app/globals.css`: **设计系统核心** (OKLCH 变量、全局动画)。
+- `src/app/api/generate-copy/route.ts`: 并发生成 API。
+- `src/components/results/MultiGenGallery.tsx`: **Multi-Gen 核心交互层** (非对称布局、导出逻辑)。
+- `src/components/results/ResultCard.tsx`: 单卡片展示逻辑。
+- `next.config.mjs`: 构建与安全路由配置。
