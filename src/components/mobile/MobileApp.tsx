@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
+import Image from 'next/image';
+import { X } from 'lucide-react';
 import { CapsuleLogo } from '../common/Branding';
 import { MobileUploadStage } from './MobileUploadStage';
 import { MobileSettingsSheet } from './MobileSettingsSheet';
 import { MobileResultList } from './MobileResultList';
 import { MobileActionBar } from '../upload/MobileActionBar';
 import { ImageItem, MultiGenResult, CopyMode, AppMode, ModelProvider } from '../../hooks/useImageProcessor';
-import { MultiGenGallery } from '../results/MultiGenGallery';
+import { MobileMultiGenResultList } from './MobileMultiGenResultList';
 
 interface MobileAppProps {
   images: ImageItem[];
@@ -442,26 +444,68 @@ export function MobileApp(props: MobileAppProps) {
               )}
             </div>
 
-            <MobileUploadStage
-              images={images}
-              handleFileSelect={handleFileSelect}
-              removeImage={removeImage}
-              isDragging={isDragging}
-              handleDragOver={handleDragOver}
-              handleDragLeave={handleDragLeave}
-              handleDrop={onDrop}
-              MAX_IMAGES={MAX_IMAGES}
-            />
+            {appMode === 'multi-gen' && images[0] ? (
+              <div style={{ padding: '8px 16px 4px' }}>
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    aspectRatio: '4 / 3',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    cursor: images[0].previewUrl ? 'zoom-in' : 'default',
+                  }}
+                  onClick={() => images[0].previewUrl && setPreviewImage(images[0].previewUrl)}
+                >
+                  {images[0].previewUrl && (
+                    <Image
+                      src={images[0].previewUrl}
+                      alt="Source"
+                      fill
+                      unoptimized
+                      style={{ objectFit: 'cover' }}
+                    />
+                  )}
+                  <button
+                    onClick={e => { e.stopPropagation(); removeImage(images[0].id); }}
+                    aria-label="删除"
+                    style={{
+                      position: 'absolute', top: '10px', right: '10px',
+                      width: '32px', height: '32px', borderRadius: '50%',
+                      background: 'rgba(20, 16, 12, 0.65)', color: 'white',
+                      border: 'none', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', cursor: 'pointer', padding: 0, zIndex: 10,
+                    }}
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <MobileUploadStage
+                images={images}
+                handleFileSelect={handleFileSelect}
+                removeImage={removeImage}
+                isDragging={isDragging}
+                handleDragOver={handleDragOver}
+                handleDragLeave={handleDragLeave}
+                handleDrop={onDrop}
+                MAX_IMAGES={MAX_IMAGES}
+              />
+            )}
 
             {appMode === 'multi-gen' ? (
               <div style={{ padding: '0 16px' }}>
-                <MultiGenGallery
-                  sourceImage={images[0] ?? null}
+                <MobileMultiGenResultList
                   results={multiGenResults}
+                  sourceImage={images[0] ?? null}
                   modelProvider={modelProvider}
                   regenerateItem={regenerateMultiGenItem}
                   stopItem={stopMultiGenItem}
                   clearAll={clearMultiGenResults}
+                  clearAllImages={clearAllImages}
                   setPreviewImage={setPreviewImage}
                   toast={toast}
                   showToast={showToast}
