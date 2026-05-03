@@ -8,20 +8,12 @@ import { ResultGallery } from '../components/results/ResultGallery';
 import { MultiGenGallery } from '../components/results/MultiGenGallery';
 import { Header } from '../components/common/Header';
 import { Footer } from '../components/common/Footer';
-import { MobileActionBar } from '../components/upload/MobileActionBar';
 import { ImagePreviewModal } from '../components/common/ImagePreviewModal';
+import { MobileApp } from '../components/mobile/MobileApp';
 
-/* ─────────────────────────────────────────
-   Logo: A time-capsule SVG mark
-   - Vertical pill outline (the sealed capsule)
-   - Mid-equator dividing line
-   - Upper porthole circle (window / viewer)
-   - Three lower dots (time / film frames)
-───────────────────────────────────────── */
 export default function VisualCopywriter() {
   const {
     images,
-    // 为了通过生产环境的 ESLint 检查，移除了已不再直接使用的 setImages
     stylePrompt,
     setStylePrompt,
     modelProvider,
@@ -38,7 +30,6 @@ export default function VisualCopywriter() {
     appMode,
     setAppMode,
     multiGenResults,
-    setMultiGenResults,
     processMultiGen,
     regenerateMultiGenItem,
     stopMultiGenItem,
@@ -67,85 +58,99 @@ export default function VisualCopywriter() {
   }, [handleDrop]);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-
-      {/* ── Header ── */}
-      <Header />
-
-      <HeroSection />
-
-      <main id="upload-area" style={{ background: 'var(--bg)' }}>
-        <div className="max-w-5xl mx-auto px-6 py-16 space-y-16">
-
-          <UploadWorkspace
-            copyMode={copyMode}
-            setCopyMode={setCopyMode}
-            appMode={appMode}
-            setAppMode={setAppMode}
-            stylePrompt={appMode === 'classic' ? stylePrompt : ''}
-            setStylePrompt={setStylePrompt}
-            processImages={appMode === 'multi-gen' ? processMultiGen : processImages}
-            isGlobalGenerating={isGlobalGenerating}
-            imagesCount={images.length}
-            handleFileSelect={handleFileSelect}
-            isDragging={isDragging}
-            handleDragOver={handleDragOver}
-            handleDragLeave={handleDragLeave}
-            handleDrop={onDrop}
-          />
-
-          <div id="results-section">
-            {appMode === 'classic' ? (
-              <ResultGallery
-                images={images}
-                removeImage={removeImage}
-                stopGeneration={stopGeneration}
-                copyMode={copyMode}
-                modelProvider={modelProvider}
-                regenerateImage={regenerateImage}
-                setPreviewImage={setPreviewImage}
-                clearAllImages={clearAllImages}
-                MAX_IMAGES={MAX_IMAGES}
-                toast={toast}
-                showToast={showToast}
-              />
-            ) : (
-              <MultiGenGallery
-                sourceImage={images[0] ?? null}
-                results={multiGenResults}
-                modelProvider={modelProvider}
-                regenerateItem={regenerateMultiGenItem}
-                stopItem={stopMultiGenItem}
-                clearAll={clearMultiGenResults}
-                setPreviewImage={setPreviewImage}
-                toast={toast}
-                showToast={showToast}
-              />
-            )}
-          </div>
-        </div>
-      </main>
-
-      {/* ── Footer ── */}
-      <Footer />
-
-      {/* ── Mobile Sticky Action Bar ── */}
+    <>
+      {/* ── Mobile (< lg) ── */}
       <div className="lg:hidden">
-        <MobileActionBar 
-          imagesCount={images.length}
+        <MobileApp
+          images={images}
+          copyMode={copyMode}
+          setCopyMode={setCopyMode}
+          stylePrompt={stylePrompt}
+          setStylePrompt={setStylePrompt}
+          modelProvider={modelProvider}
           isGlobalGenerating={isGlobalGenerating}
-          processImages={appMode === 'multi-gen' ? processMultiGen : processImages}
-          appMode={appMode}
+          handleFileSelect={handleFileSelect}
+          handleDrop={onDrop}
+          removeImage={removeImage}
+          clearAllImages={clearAllImages}
+          stopGeneration={stopGeneration}
+          processImages={processImages}
+          regenerateImage={regenerateImage}
+          toast={toast}
+          showToast={showToast}
+          setPreviewImage={setPreviewImage}
+          MAX_IMAGES={MAX_IMAGES}
         />
       </div>
 
-      {/* ── Image Preview Modal ── */}
+      {/* ── Desktop (>= lg) ── */}
+      <div className="hidden lg:block" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+        <Header />
+
+        <HeroSection />
+
+        <main id="upload-area" style={{ background: 'var(--bg)' }}>
+          <div className="max-w-5xl mx-auto px-6 py-16 space-y-16">
+
+            <UploadWorkspace
+              copyMode={copyMode}
+              setCopyMode={setCopyMode}
+              appMode={appMode}
+              setAppMode={setAppMode}
+              stylePrompt={appMode === 'classic' ? stylePrompt : ''}
+              setStylePrompt={setStylePrompt}
+              processImages={appMode === 'multi-gen' ? processMultiGen : processImages}
+              isGlobalGenerating={isGlobalGenerating}
+              imagesCount={images.length}
+              handleFileSelect={handleFileSelect}
+              isDragging={isDragging}
+              handleDragOver={handleDragOver}
+              handleDragLeave={handleDragLeave}
+              handleDrop={onDrop}
+            />
+
+            <div id="results-section">
+              {appMode === 'classic' ? (
+                <ResultGallery
+                  images={images}
+                  removeImage={removeImage}
+                  stopGeneration={stopGeneration}
+                  copyMode={copyMode}
+                  modelProvider={modelProvider}
+                  regenerateImage={regenerateImage}
+                  setPreviewImage={setPreviewImage}
+                  clearAllImages={clearAllImages}
+                  MAX_IMAGES={MAX_IMAGES}
+                  toast={toast}
+                  showToast={showToast}
+                />
+              ) : (
+                <MultiGenGallery
+                  sourceImage={images[0] ?? null}
+                  results={multiGenResults}
+                  modelProvider={modelProvider}
+                  regenerateItem={regenerateMultiGenItem}
+                  stopItem={stopMultiGenItem}
+                  clearAll={clearMultiGenResults}
+                  setPreviewImage={setPreviewImage}
+                  toast={toast}
+                  showToast={showToast}
+                />
+              )}
+            </div>
+          </div>
+        </main>
+
+        <Footer />
+      </div>
+
+      {/* ── Image Preview Modal (shared) ── */}
       {previewImage && (
         <ImagePreviewModal
           previewImage={previewImage}
           onClose={() => setPreviewImage(null)}
         />
       )}
-    </div>
+    </>
   );
 }
