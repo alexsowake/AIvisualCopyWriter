@@ -325,16 +325,30 @@ export function ResultCard({
                       )}
                     </>
                   ) : (
-                    <div style={{
-                      fontSize: '14.5px',
-                      lineHeight: 1.75,
-                      color: 'var(--fg)',
-                      fontFamily: "'LXGW WenKai', serif",
-                      whiteSpace: 'pre-wrap',
-                      letterSpacing: '0.01em'
-                    }}>
-                      {mainText}
-                    </div>
+                    <>
+                      <div style={{
+                        fontSize: '14.5px',
+                        lineHeight: 1.75,
+                        color: 'var(--fg)',
+                        fontFamily: "'LXGW WenKai', serif",
+                        whiteSpace: 'pre-wrap',
+                        letterSpacing: '0.01em'
+                      }}>
+                        {mainText}
+                      </div>
+                      {attribution && (
+                        <div style={{
+                          marginTop: '10px',
+                          fontSize: '11px',
+                          color: 'var(--fg-subtle)',
+                          fontFamily: "'DM Sans', sans-serif",
+                          lineHeight: 1.7,
+                          whiteSpace: 'pre-wrap',
+                        }}>
+                          {attribution}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               );

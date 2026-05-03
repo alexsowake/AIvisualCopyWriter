@@ -109,10 +109,6 @@ export function MultiGenGallery({
           ? Math.max(naturalRatio, 3 / 4)
           : Math.min(naturalRatio, 4 / 3);
 
-        if (cloneImgEl.parentElement) {
-          cloneImgEl.parentElement.style.paddingTop = `${(100 / targetRatio).toFixed(2)}%`;
-        }
-
         let sx = 0, sy = 0, sw = nw, sh = nh;
         if (nw / nh > targetRatio) {
           sw = Math.round(nh * targetRatio);
@@ -393,16 +389,30 @@ function MultiGenCard({
                   )}
                 </>
               ) : (
-                <div style={{
-                  fontSize: '14.5px',
-                  lineHeight: 1.7,
-                  color: 'var(--fg)',
-                  fontFamily: "'LXGW WenKai', serif",
-                  whiteSpace: 'pre-wrap',
-                  letterSpacing: '0.01em'
-                }}>
-                  {mainText}
-                </div>
+                <>
+                  <div style={{
+                    fontSize: '14.5px',
+                    lineHeight: 1.7,
+                    color: 'var(--fg)',
+                    fontFamily: "'LXGW WenKai', serif",
+                    whiteSpace: 'pre-wrap',
+                    letterSpacing: '0.01em'
+                  }}>
+                    {mainText}
+                  </div>
+                  {attribution && (
+                    <div style={{
+                      marginTop: '10px',
+                      fontSize: '11px',
+                      color: 'var(--fg-subtle)',
+                      fontFamily: "'DM Sans', sans-serif",
+                      lineHeight: 1.7,
+                      whiteSpace: 'pre-wrap',
+                    }}>
+                      {attribution}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

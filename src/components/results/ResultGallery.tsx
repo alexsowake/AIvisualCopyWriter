@@ -172,11 +172,6 @@ export function ResultGallery({
           ? Math.max(naturalRatio, 3 / 4)    // 竖屏：比 3:4 更高才裁；否则用原比例
           : Math.min(naturalRatio, 4 / 3);   // 横屏：比 4:3 更宽才裁；否则用原比例
 
-        // 同步更新克隆节点图片容器的 padding-top，与实际裁剪比例一致
-        if (cloneImgEl.parentElement) {
-          cloneImgEl.parentElement.style.paddingTop = `${(100 / targetRatio).toFixed(2)}%`;
-        }
-
         let sx = 0, sy = 0, sw = nw, sh = nh;
         if (nw / nh > targetRatio) {
           // 图片过宽：裁两侧，居中取中间
