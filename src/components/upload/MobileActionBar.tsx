@@ -10,6 +10,7 @@ interface MobileActionBarProps {
   processImages: () => Promise<void>;
   onOpenSettings: () => void;
   appMode?: 'classic' | 'multi-gen';
+  showDot?: boolean;
 }
 
 export function MobileActionBar({
@@ -18,6 +19,7 @@ export function MobileActionBar({
   processImages,
   onOpenSettings,
   appMode = 'classic',
+  showDot = false,
 }: MobileActionBarProps) {
   const isVisible = imagesCount > 0;
 
@@ -48,29 +50,43 @@ export function MobileActionBar({
               margin: '0 auto',
             }}
           >
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              aria-label="生成参数"
-              style={{
-                flex: '0 0 auto',
-                width: '52px',
-                height: '52px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'var(--surface)',
-                color: 'var(--fg)',
-                border: '1px solid var(--border)',
-                borderRadius: '100px',
-                cursor: 'pointer',
-                boxShadow: '0 8px 20px -8px rgba(0,0,0,0.12)',
-              }}
-              onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.94)')}
-              onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              <Sliders size={18} />
-            </button>
+            <div style={{ position: 'relative', flex: '0 0 auto', width: '52px', height: '52px' }}>
+              <button
+                type="button"
+                onClick={onOpenSettings}
+                aria-label="生成参数"
+                style={{
+                  width: '52px',
+                  height: '52px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'var(--surface)',
+                  color: 'var(--fg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '100px',
+                  cursor: 'pointer',
+                  boxShadow: '0 8px 20px -8px rgba(0,0,0,0.12)',
+                }}
+                onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.94)')}
+                onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+              >
+                <Sliders size={18} />
+              </button>
+              {showDot && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  width: '13px',
+                  height: '13px',
+                  borderRadius: '50%',
+                  background: '#e53e3e',
+                  border: '1.5px solid var(--bg)',
+                  pointerEvents: 'none',
+                }} />
+              )}
+            </div>
 
             <button
               onClick={processImages}

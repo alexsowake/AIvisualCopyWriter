@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
 import { CapsuleLogo } from '../common/Branding';
@@ -67,6 +67,22 @@ export function MobileApp(props: MobileAppProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const hasImages = images.length > 0;
+
+  // 红点：上传照片后最多提示 2 次，用 localStorage 持久化计数
+  const STORAGE_KEY = 'settings-dot-shown-count';
+  const [showSettingsDot, setShowSettingsDot] = useState(false);
+  const prevHasImages = useRef(false);
+  useEffect(() => {
+    if (!prevHasImages.current && hasImages) {
+      const count = parseInt(localStorage.getItem(STORAGE_KEY) ?? '0', 10);
+      if (count < 2) {
+        setShowSettingsDot(true);
+        localStorage.setItem(STORAGE_KEY, String(count + 1));
+      }
+    }
+    if (!hasImages) setShowSettingsDot(false);
+    prevHasImages.current = hasImages;
+  }, [hasImages]);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLElement>) => {
     e.preventDefault();
@@ -265,45 +281,6 @@ export function MobileApp(props: MobileAppProps) {
                   : '从文学、电影台词、歌词中匹配最契合的引文'}
             </p>
 
-            {/* Style prompt — only in classic mode */}
-            {appMode === 'classic' && (
-              <div style={{ marginBottom: '16px' }}>
-                <label htmlFor="mobile-style-prompt-home" style={{
-                  display: 'block',
-                  fontSize: '12px',
-                  color: 'var(--fg-muted)',
-                  marginBottom: '8px',
-                  letterSpacing: '0.02em',
-                }}>
-                  {copyMode === 'ai-original' ? '风格补充' : '附加要求'}
-                  <span style={{ color: 'var(--fg-subtle)', fontWeight: 300, marginLeft: '4px' }}>（可选）</span>
-                </label>
-                <textarea
-                  id="mobile-style-prompt-home"
-                  rows={2}
-                  value={stylePrompt}
-                  onChange={e => setStylePrompt(e.target.value)}
-                  placeholder={
-                    copyMode === 'ai-original'
-                      ? '例如：更幽默一点、使用第二人称……'
-                      : '例如：偏好日本文学、只选电影台词……'
-                  }
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    fontSize: '16px',
-                    fontFamily: "'DM Sans', sans-serif",
-                    color: 'var(--fg)',
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '12px',
-                    resize: 'none',
-                    outline: 'none',
-                    lineHeight: 1.6,
-                  }}
-                />
-              </div>
-            )}
 
             {/* Upload card — compact rectangle, thumb-friendly position */}
             <label
@@ -535,8 +512,9 @@ export function MobileApp(props: MobileAppProps) {
         imagesCount={images.length}
         isGlobalGenerating={isGlobalGenerating}
         processImages={appMode === 'multi-gen' ? processMultiGen : processImages}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={() => { setSettingsOpen(true); setShowSettingsDot(false); }}
         appMode={appMode}
+        showDot={showSettingsDot}
       />
 
       <MobileSettingsSheet
