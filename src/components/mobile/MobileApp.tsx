@@ -215,12 +215,12 @@ export function MobileApp(props: MobileAppProps) {
               })}
             </div>
 
-            {/* Sub copy-mode: underline tabs, only in classic mode */}
+            {/* Sub copy-mode: segmented tabs, only in classic mode */}
             {appMode === 'classic' && (
               <div style={{
                 display: 'flex',
                 justifyContent: 'center',
-                gap: '24px',
+                gap: '32px',
                 marginBottom: '10px',
               }}>
                 {(['ai-original', 'quote-style'] as CopyMode[]).map(mode => {
@@ -231,8 +231,8 @@ export function MobileApp(props: MobileAppProps) {
                       type="button"
                       onClick={() => setCopyMode(mode)}
                       style={{
-                        padding: '4px 2px 6px',
-                        fontSize: '12.5px',
+                        padding: '4px 2px 8px',
+                        fontSize: '15px',
                         fontFamily: "'DM Sans', sans-serif",
                         fontWeight: active ? 500 : 400,
                         color: active ? 'var(--fg)' : 'var(--fg-subtle)',
@@ -408,12 +408,13 @@ export function MobileApp(props: MobileAppProps) {
                 })}
               </div>
 
-              {/* Sub copy-mode: underline tabs */}
+              {/* Sub copy-mode: segmented tabs */}
               {appMode === 'classic' && (
                 <div style={{
                   display: 'flex',
                   justifyContent: 'center',
-                  gap: '24px',
+                  gap: '32px',
+                  marginTop: '8px',
                 }}>
                   {(['ai-original', 'quote-style'] as CopyMode[]).map(mode => {
                     const active = copyMode === mode;
@@ -423,8 +424,8 @@ export function MobileApp(props: MobileAppProps) {
                         type="button"
                         onClick={() => setCopyMode(mode)}
                         style={{
-                          padding: '4px 2px 6px',
-                          fontSize: '12.5px',
+                          padding: '4px 2px 8px',
+                          fontSize: '15px',
                           fontFamily: "'DM Sans', sans-serif",
                           fontWeight: active ? 500 : 400,
                           color: active ? 'var(--fg)' : 'var(--fg-subtle)',
