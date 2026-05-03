@@ -454,17 +454,19 @@ export function MobileApp(props: MobileAppProps) {
             />
 
             {appMode === 'multi-gen' ? (
-              <MultiGenGallery
-                sourceImage={images[0] ?? null}
-                results={multiGenResults}
-                modelProvider={modelProvider}
-                regenerateItem={regenerateMultiGenItem}
-                stopItem={stopMultiGenItem}
-                clearAll={clearMultiGenResults}
-                setPreviewImage={setPreviewImage}
-                toast={toast}
-                showToast={showToast}
-              />
+              <div style={{ padding: '0 16px' }}>
+                <MultiGenGallery
+                  sourceImage={images[0] ?? null}
+                  results={multiGenResults}
+                  modelProvider={modelProvider}
+                  regenerateItem={regenerateMultiGenItem}
+                  stopItem={stopMultiGenItem}
+                  clearAll={clearMultiGenResults}
+                  setPreviewImage={setPreviewImage}
+                  toast={toast}
+                  showToast={showToast}
+                />
+              </div>
             ) : (
               <MobileResultList
                 images={images}
