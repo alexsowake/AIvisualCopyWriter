@@ -19,13 +19,13 @@ export function ExportCardTemplate({ id, previewUrl, result, copyMode }: ExportC
       >
         {/* 使用原生 img 而非 Next.js Image，因为 html2canvas 导出时 wrapper 会被移至 document.body，
             脱离 React 组件树后 Next.js Image 无法正常渲染 */}
-        {/* paddingTop: '75%' = 4:3 宽高比，原图居中裁剪，避免竖向或横向被拉伸 */}
-        <div className="w-full mb-6" style={{ position: 'relative', paddingTop: '75%', overflow: 'hidden', borderRadius: '8px' }}>
+        {/* 自然比例渲染，竖版超过 500px 高时从底部裁切，避免过长 */}
+        <div className="w-full mb-6" style={{ maxHeight: '500px', overflow: 'hidden', borderRadius: '8px' }}>
           <img
             src={previewUrl}
             alt="export"
             loading="eager"
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
+            style={{ width: '100%', height: 'auto', display: 'block' }}
           />
         </div>
         {copyMode === 'quote-style' ? (
