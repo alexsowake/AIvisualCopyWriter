@@ -77,7 +77,12 @@ export default function VisualCopywriter() {
           clearAllImages={clearAllImages}
           stopGeneration={stopGeneration}
           processImages={processImages}
+          processMultiGen={processMultiGen}
+          multiGenResults={multiGenResults}
           regenerateImage={regenerateImage}
+          regenerateMultiGenItem={regenerateMultiGenItem}
+          stopMultiGenItem={stopMultiGenItem}
+          clearMultiGenResults={clearMultiGenResults}
           toast={toast}
           showToast={showToast}
           setPreviewImage={setPreviewImage}

@@ -6,7 +6,8 @@ import { MobileUploadStage } from './MobileUploadStage';
 import { MobileSettingsSheet } from './MobileSettingsSheet';
 import { MobileResultList } from './MobileResultList';
 import { MobileActionBar } from '../upload/MobileActionBar';
-import { ImageItem, CopyMode, AppMode, ModelProvider } from '../../hooks/useImageProcessor';
+import { ImageItem, MultiGenResult, CopyMode, AppMode, ModelProvider } from '../../hooks/useImageProcessor';
+import { MultiGenGallery } from '../results/MultiGenGallery';
 
 interface MobileAppProps {
   images: ImageItem[];
@@ -24,7 +25,12 @@ interface MobileAppProps {
   clearAllImages: () => void;
   stopGeneration: (id: string) => void;
   processImages: () => Promise<void>;
+  processMultiGen: () => Promise<void>;
+  multiGenResults: MultiGenResult[];
   regenerateImage: (id: string) => void;
+  regenerateMultiGenItem: (id: string) => void;
+  stopMultiGenItem: (id: string) => void;
+  clearMultiGenResults: () => void;
   toast: { message: string; type: 'info' | 'error' | 'success' } | null;
   showToast: (message: string, type: 'info' | 'error' | 'success') => void;
   setPreviewImage: (url: string) => void;
@@ -45,7 +51,12 @@ export function MobileApp(props: MobileAppProps) {
     clearAllImages,
     stopGeneration,
     processImages,
+    processMultiGen,
+    multiGenResults,
     regenerateImage,
+    regenerateMultiGenItem,
+    stopMultiGenItem,
+    clearMultiGenResults,
     toast, showToast,
     setPreviewImage,
     MAX_IMAGES,
@@ -442,19 +453,33 @@ export function MobileApp(props: MobileAppProps) {
               MAX_IMAGES={MAX_IMAGES}
             />
 
-            <MobileResultList
-              images={images}
-              removeImage={removeImage}
-              stopGeneration={stopGeneration}
-              copyMode={copyMode}
-              modelProvider={modelProvider}
-              regenerateImage={regenerateImage}
-              setPreviewImage={setPreviewImage}
-              clearAllImages={clearAllImages}
-              MAX_IMAGES={MAX_IMAGES}
-              toast={toast}
-              showToast={showToast}
-            />
+            {appMode === 'multi-gen' ? (
+              <MultiGenGallery
+                sourceImage={images[0] ?? null}
+                results={multiGenResults}
+                modelProvider={modelProvider}
+                regenerateItem={regenerateMultiGenItem}
+                stopItem={stopMultiGenItem}
+                clearAll={clearMultiGenResults}
+                setPreviewImage={setPreviewImage}
+                toast={toast}
+                showToast={showToast}
+              />
+            ) : (
+              <MobileResultList
+                images={images}
+                removeImage={removeImage}
+                stopGeneration={stopGeneration}
+                copyMode={copyMode}
+                modelProvider={modelProvider}
+                regenerateImage={regenerateImage}
+                setPreviewImage={setPreviewImage}
+                clearAllImages={clearAllImages}
+                MAX_IMAGES={MAX_IMAGES}
+                toast={toast}
+                showToast={showToast}
+              />
+            )}
           </>
         )}
       </main>
@@ -462,8 +487,9 @@ export function MobileApp(props: MobileAppProps) {
       <MobileActionBar
         imagesCount={images.length}
         isGlobalGenerating={isGlobalGenerating}
-        processImages={processImages}
+        processImages={appMode === 'multi-gen' ? processMultiGen : processImages}
         onOpenSettings={() => setSettingsOpen(true)}
+        appMode={appMode}
       />
 
       <MobileSettingsSheet
