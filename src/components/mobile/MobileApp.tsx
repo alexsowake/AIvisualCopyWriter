@@ -6,10 +6,12 @@ import { MobileUploadStage } from './MobileUploadStage';
 import { MobileSettingsSheet } from './MobileSettingsSheet';
 import { MobileResultList } from './MobileResultList';
 import { MobileActionBar } from '../upload/MobileActionBar';
-import { ImageItem, CopyMode, ModelProvider } from '../../hooks/useImageProcessor';
+import { ImageItem, CopyMode, AppMode, ModelProvider } from '../../hooks/useImageProcessor';
 
 interface MobileAppProps {
   images: ImageItem[];
+  appMode: AppMode;
+  setAppMode: (mode: AppMode) => void;
   copyMode: CopyMode;
   setCopyMode: (mode: CopyMode) => void;
   stylePrompt: string;
@@ -32,6 +34,7 @@ interface MobileAppProps {
 export function MobileApp(props: MobileAppProps) {
   const {
     images,
+    appMode, setAppMode,
     copyMode, setCopyMode,
     stylePrompt, setStylePrompt,
     modelProvider,
@@ -163,36 +166,77 @@ export function MobileApp(props: MobileAppProps) {
               </p>
             </div>
 
-            {/* Mode toggle */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-              {(['ai-original', 'quote-style'] as CopyMode[]).map(mode => {
-                const active = copyMode === mode;
+            {/* Primary mode toggle */}
+            <div style={{
+              display: 'flex',
+              background: 'var(--surface-2)',
+              borderRadius: '11px',
+              padding: '3px',
+              marginBottom: '10px',
+            }}>
+              {(['classic', 'multi-gen'] as AppMode[]).map(mode => {
+                const active = appMode === mode;
                 return (
                   <button
                     key={mode}
                     type="button"
-                    onClick={() => setCopyMode(mode)}
+                    onClick={() => setAppMode(mode)}
                     style={{
                       flex: 1,
-                      minHeight: '40px',
-                      padding: '8px 10px',
+                      padding: '8px 6px',
                       fontSize: '13px',
                       fontWeight: active ? 500 : 400,
                       fontFamily: "'DM Sans', sans-serif",
                       color: active ? 'var(--bg)' : 'var(--fg-muted)',
-                      background: active ? 'var(--fg)' : 'var(--surface)',
-                      border: '1px solid',
-                      borderColor: active ? 'var(--fg)' : 'var(--border)',
-                      borderRadius: '10px',
+                      background: active ? 'var(--fg)' : 'transparent',
+                      border: 'none',
+                      borderRadius: '8px',
                       cursor: 'pointer',
-                      transition: 'all 0.18s ease',
+                      transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
+                      boxShadow: active ? '0 1px 4px rgba(43,32,21,0.18)' : 'none',
                     }}
                   >
-                    {mode === 'ai-original' ? 'AI 原创旁白' : '经典引文匹配'}
+                    {mode === 'classic' ? '经典模式' : '一图生多文'}
                   </button>
                 );
               })}
             </div>
+
+            {/* Sub copy-mode: underline tabs, only in classic mode */}
+            {appMode === 'classic' && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '24px',
+                marginBottom: '10px',
+              }}>
+                {(['ai-original', 'quote-style'] as CopyMode[]).map(mode => {
+                  const active = copyMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setCopyMode(mode)}
+                      style={{
+                        padding: '4px 2px 6px',
+                        fontSize: '12.5px',
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontWeight: active ? 500 : 400,
+                        color: active ? 'var(--fg)' : 'var(--fg-subtle)',
+                        background: 'transparent',
+                        border: 'none',
+                        borderBottom: active ? '1.5px solid var(--accent)' : '1.5px solid transparent',
+                        cursor: 'pointer',
+                        transition: 'color 0.15s ease, border-color 0.15s ease',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {mode === 'ai-original' ? 'AI 原创旁白' : '经典引文匹配'}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Mode description */}
             <p style={{
@@ -200,50 +244,53 @@ export function MobileApp(props: MobileAppProps) {
               color: 'var(--fg-subtle)',
               lineHeight: 1.65,
               marginBottom: '16px',
-              marginTop: '-8px',
             }}>
-              {copyMode === 'ai-original'
-                ? 'AI 根据画面意境，原创一句极简旁白'
-                : '从文学、电影台词、歌词中匹配最契合的引文'}
+              {appMode === 'multi-gen'
+                ? '上传 1 张照片，同时生成 3 条 AI 旁白 + 3 条文学引文'
+                : copyMode === 'ai-original'
+                  ? 'AI 根据画面意境，原创一句极简旁白'
+                  : '从文学、电影台词、歌词中匹配最契合的引文'}
             </p>
 
-            {/* Style prompt */}
-            <div style={{ marginBottom: '16px' }}>
-              <label htmlFor="mobile-style-prompt-home" style={{
-                display: 'block',
-                fontSize: '12px',
-                color: 'var(--fg-muted)',
-                marginBottom: '8px',
-                letterSpacing: '0.02em',
-              }}>
-                {copyMode === 'ai-original' ? '风格补充' : '附加要求'}
-                <span style={{ color: 'var(--fg-subtle)', fontWeight: 300, marginLeft: '4px' }}>（可选）</span>
-              </label>
-              <textarea
-                id="mobile-style-prompt-home"
-                rows={2}
-                value={stylePrompt}
-                onChange={e => setStylePrompt(e.target.value)}
-                placeholder={
-                  copyMode === 'ai-original'
-                    ? '例如：更幽默一点、使用第二人称……'
-                    : '例如：偏好日本文学、只选电影台词……'
-                }
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  fontSize: '16px',
-                  fontFamily: "'DM Sans', sans-serif",
-                  color: 'var(--fg)',
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '12px',
-                  resize: 'none',
-                  outline: 'none',
-                  lineHeight: 1.6,
-                }}
-              />
-            </div>
+            {/* Style prompt — only in classic mode */}
+            {appMode === 'classic' && (
+              <div style={{ marginBottom: '16px' }}>
+                <label htmlFor="mobile-style-prompt-home" style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  color: 'var(--fg-muted)',
+                  marginBottom: '8px',
+                  letterSpacing: '0.02em',
+                }}>
+                  {copyMode === 'ai-original' ? '风格补充' : '附加要求'}
+                  <span style={{ color: 'var(--fg-subtle)', fontWeight: 300, marginLeft: '4px' }}>（可选）</span>
+                </label>
+                <textarea
+                  id="mobile-style-prompt-home"
+                  rows={2}
+                  value={stylePrompt}
+                  onChange={e => setStylePrompt(e.target.value)}
+                  placeholder={
+                    copyMode === 'ai-original'
+                      ? '例如：更幽默一点、使用第二人称……'
+                      : '例如：偏好日本文学、只选电影台词……'
+                  }
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    fontSize: '16px',
+                    fontFamily: "'DM Sans', sans-serif",
+                    color: 'var(--fg)',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    resize: 'none',
+                    outline: 'none',
+                    lineHeight: 1.6,
+                  }}
+                />
+              </div>
+            )}
 
             {/* Upload card — compact rectangle, thumb-friendly position */}
             <label
@@ -311,34 +358,77 @@ export function MobileApp(props: MobileAppProps) {
         ) : (
           /* ── Has images: compact mode toggle + thumbnail strip + results ── */
           <>
-            <div style={{ display: 'flex', gap: '8px', padding: '12px 16px 4px' }}>
-              {(['ai-original', 'quote-style'] as CopyMode[]).map(mode => {
-                const active = copyMode === mode;
-                return (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setCopyMode(mode)}
-                    style={{
-                      flex: 1,
-                      minHeight: '40px',
-                      padding: '8px 10px',
-                      fontSize: '13px',
-                      fontWeight: active ? 500 : 400,
-                      fontFamily: "'DM Sans', sans-serif",
-                      color: active ? 'var(--bg)' : 'var(--fg-muted)',
-                      background: active ? 'var(--fg)' : 'var(--surface)',
-                      border: '1px solid',
-                      borderColor: active ? 'var(--fg)' : 'var(--border)',
-                      borderRadius: '10px',
-                      cursor: 'pointer',
-                      transition: 'all 0.18s ease',
-                    }}
-                  >
-                    {mode === 'ai-original' ? 'AI 原创旁白' : '经典引文匹配'}
-                  </button>
-                );
-              })}
+            <div style={{ padding: '12px 16px 8px' }}>
+              {/* Primary toggle */}
+              <div style={{
+                display: 'flex',
+                background: 'var(--surface-2)',
+                borderRadius: '11px',
+                padding: '3px',
+                marginBottom: appMode === 'classic' ? '8px' : '0',
+              }}>
+                {(['classic', 'multi-gen'] as AppMode[]).map(mode => {
+                  const active = appMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setAppMode(mode)}
+                      style={{
+                        flex: 1,
+                        padding: '7px 6px',
+                        fontSize: '13px',
+                        fontWeight: active ? 500 : 400,
+                        fontFamily: "'DM Sans', sans-serif",
+                        color: active ? 'var(--bg)' : 'var(--fg-muted)',
+                        background: active ? 'var(--fg)' : 'transparent',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
+                        boxShadow: active ? '0 1px 4px rgba(43,32,21,0.18)' : 'none',
+                      }}
+                    >
+                      {mode === 'classic' ? '经典模式' : '一图生多文'}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Sub copy-mode: underline tabs */}
+              {appMode === 'classic' && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: '24px',
+                }}>
+                  {(['ai-original', 'quote-style'] as CopyMode[]).map(mode => {
+                    const active = copyMode === mode;
+                    return (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setCopyMode(mode)}
+                        style={{
+                          padding: '4px 2px 6px',
+                          fontSize: '12.5px',
+                          fontFamily: "'DM Sans', sans-serif",
+                          fontWeight: active ? 500 : 400,
+                          color: active ? 'var(--fg)' : 'var(--fg-subtle)',
+                          background: 'transparent',
+                          border: 'none',
+                          borderBottom: active ? '1.5px solid var(--accent)' : '1.5px solid transparent',
+                          cursor: 'pointer',
+                          transition: 'color 0.15s ease, border-color 0.15s ease',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {mode === 'ai-original' ? 'AI 原创旁白' : '经典引文匹配'}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <MobileUploadStage

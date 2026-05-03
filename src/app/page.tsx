@@ -63,6 +63,8 @@ export default function VisualCopywriter() {
       <div className="lg:hidden">
         <MobileApp
           images={images}
+          appMode={appMode}
+          setAppMode={setAppMode}
           copyMode={copyMode}
           setCopyMode={setCopyMode}
           stylePrompt={stylePrompt}
