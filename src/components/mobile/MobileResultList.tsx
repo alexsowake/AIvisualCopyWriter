@@ -493,7 +493,7 @@ function MobileResultCard({
                     {img.result.split('\n\n')[0]}
                   </div>
                   {img.result.split('\n\n')[1] && (
-                    <div style={{ textAlign: 'right', marginTop: '8px', fontSize: '12.5px', color: 'var(--fg-subtle)', fontStyle: 'italic', fontFamily: "'Playfair Display', serif" }}>
+                    <div style={{ textAlign: 'right', marginTop: '28px', fontSize: '12.5px', color: 'var(--fg-subtle)', fontStyle: 'italic', fontFamily: "'Playfair Display', serif" }}>
                       {img.result.split('\n\n')[1]}
                     </div>
                   )}
