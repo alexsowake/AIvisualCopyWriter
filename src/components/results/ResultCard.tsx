@@ -298,7 +298,9 @@ export function ResultCard({
                   marginBottom: '1.25rem',
                   overflowY: 'auto',
                   maxHeight: '10rem',
-                  flex: 1
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}>
                   {effectiveCopyMode === 'quote-style' ? (
                     <>
@@ -307,14 +309,16 @@ export function ResultCard({
                         lineHeight: 1.75,
                         color: 'var(--fg)',
                         fontFamily: "'LXGW WenKai', serif",
-                        letterSpacing: '0.015em'
+                        letterSpacing: '0.015em',
+                        flex: 1,
                       }}>
                         {mainText}
                       </div>
                       {attribution && (
                         <div style={{
                           textAlign: 'right',
-                          marginTop: '12px',
+                          marginTop: 'auto',
+                          paddingTop: '12px',
                           fontSize: '14.5px',
                           color: 'var(--fg-subtle)',
                           fontFamily: "'LXGW WenKai', serif",
@@ -332,13 +336,15 @@ export function ResultCard({
                         color: 'var(--fg)',
                         fontFamily: "'LXGW WenKai', serif",
                         whiteSpace: 'pre-wrap',
-                        letterSpacing: '0.01em'
+                        letterSpacing: '0.01em',
+                        flex: 1,
                       }}>
                         {mainText}
                       </div>
                       {attribution && (
                         <div style={{
-                          marginTop: '10px',
+                          marginTop: 'auto',
+                          paddingTop: '12px',
                           fontSize: '14.5px',
                           color: 'var(--fg-subtle)',
                           fontFamily: "'LXGW WenKai', serif",

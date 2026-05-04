@@ -364,6 +364,8 @@ function MultiGenCard({
               flex: 1,
               paddingLeft: '14px',
               borderLeft: '2px solid var(--border-strong)',
+              display: 'flex',
+              flexDirection: 'column',
             }}>
               {res.copyMode === 'quote-style' ? (
                 <>
@@ -372,14 +374,16 @@ function MultiGenCard({
                     lineHeight: 1.7,
                     color: 'var(--fg)',
                     fontFamily: "'LXGW WenKai', serif",
-                    letterSpacing: '0.02em'
+                    letterSpacing: '0.02em',
+                    flex: 1,
                   }}>
                     {mainText}
                   </div>
                   {attribution && (
                     <div style={{
                       textAlign: 'right',
-                      marginTop: '12px',
+                      marginTop: 'auto',
+                      paddingTop: '12px',
                       fontSize: '14.5px',
                       color: 'var(--fg-subtle)',
                       fontFamily: "'LXGW WenKai', serif",
@@ -397,13 +401,15 @@ function MultiGenCard({
                     color: 'var(--fg)',
                     fontFamily: "'LXGW WenKai', serif",
                     whiteSpace: 'pre-wrap',
-                    letterSpacing: '0.01em'
+                    letterSpacing: '0.01em',
+                    flex: 1,
                   }}>
                     {mainText}
                   </div>
                   {attribution && (
                     <div style={{
-                      marginTop: '10px',
+                      marginTop: 'auto',
+                      paddingTop: '12px',
                       fontSize: '14.5px',
                       color: 'var(--fg-subtle)',
                       fontFamily: "'LXGW WenKai', serif",
