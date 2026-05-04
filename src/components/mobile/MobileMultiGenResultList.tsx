@@ -477,7 +477,7 @@ function ResultCard({
                     {mainText}
                   </div>
                   {attribution && (
-                    <div style={{ textAlign: 'right', marginTop: '8px', fontSize: '12.5px', color: 'var(--fg-subtle)', fontStyle: 'italic', fontFamily: "'Playfair Display', serif" }}>
+                    <div style={{ textAlign: 'right', marginTop: '28px', fontSize: '12.5px', color: 'var(--fg-subtle)', fontStyle: 'italic', fontFamily: "'Playfair Display', serif" }}>
                       {attribution}
                     </div>
                   )}
@@ -489,7 +489,7 @@ function ResultCard({
                   </div>
                   {attribution && (
                     <div style={{
-                      marginTop: '8px',
+                      marginTop: '28px',
                       fontSize: '12px',
                       color: 'var(--fg-subtle)',
                       fontFamily: "'DM Sans', sans-serif",
