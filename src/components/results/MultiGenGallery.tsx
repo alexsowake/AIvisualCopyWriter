@@ -361,7 +361,11 @@ function MultiGenCard({
           <>
             <div style={{
               marginBottom: '1.25rem',
-              flex: 1
+              flex: 1,
+              paddingLeft: '14px',
+              borderLeft: '2px solid var(--border-strong)',
+              display: 'flex',
+              flexDirection: 'column',
             }}>
               {res.copyMode === 'quote-style' ? (
                 <>
@@ -370,18 +374,19 @@ function MultiGenCard({
                     lineHeight: 1.7,
                     color: 'var(--fg)',
                     fontFamily: "'LXGW WenKai', serif",
-                    letterSpacing: '0.02em'
+                    letterSpacing: '0.02em',
+                    flex: 1,
                   }}>
                     {mainText}
                   </div>
                   {attribution && (
                     <div style={{
                       textAlign: 'right',
-                      marginTop: '12px',
-                      fontSize: '11px',
+                      marginTop: 'auto',
+                      paddingTop: '12px',
+                      fontSize: '14.5px',
                       color: 'var(--fg-subtle)',
-                      fontStyle: 'italic',
-                      fontFamily: "'Playfair Display', serif",
+                      fontFamily: "'LXGW WenKai', serif",
                       opacity: 0.8
                     }}>
                       — {attribution}
@@ -396,16 +401,18 @@ function MultiGenCard({
                     color: 'var(--fg)',
                     fontFamily: "'LXGW WenKai', serif",
                     whiteSpace: 'pre-wrap',
-                    letterSpacing: '0.01em'
+                    letterSpacing: '0.01em',
+                    flex: 1,
                   }}>
                     {mainText}
                   </div>
                   {attribution && (
                     <div style={{
-                      marginTop: '10px',
-                      fontSize: '11px',
+                      marginTop: 'auto',
+                      paddingTop: '12px',
+                      fontSize: '14.5px',
                       color: 'var(--fg-subtle)',
-                      fontFamily: "'DM Sans', sans-serif",
+                      fontFamily: "'LXGW WenKai', serif",
                       lineHeight: 1.7,
                       whiteSpace: 'pre-wrap',
                     }}>
